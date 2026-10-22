@@ -29,9 +29,20 @@ async function syncQueue(tabId, force = false) {
     const {queueCursor} = await chrome.storage.local.get('queueCursor');
     await chrome.tabs.sendMessage(tabId, {type: 'queueSnapshot', data, requestedAt,
       cursor: queueCursor?.tabId === tabId ? queueCursor : null});
+    await chrome.storage.session.set({lastSyncAt: Date.now(), lastSyncConnection: selected.connectionId});
   })();
   queueFlights.set(key, flight);
   try { await flight; } finally { if (queueFlights.get(key) === flight) queueFlights.delete(key); }
+}
+async function connectionStatus(activeTabId) {
+  const state = await chrome.storage.session.get(['tabId', 'connectionId', 'lastSyncAt', 'lastSyncConnection', 'videoTitle', 'videoState']);
+  if (!state.tabId) return {linked: false};
+  let tab;
+  try { tab = await chrome.tabs.get(state.tabId); } catch (_) { return {linked: false}; }
+  return {linked: true, onThisTab: state.tabId === activeTabId,
+    online: state.lastSyncConnection === state.connectionId && Date.now() - (state.lastSyncAt || 0) < 30000,
+    title: state.videoTitle || tab.title?.replace(/ - YouTube$/, '') || '유튜브 탭',
+    videoState: state.videoState};
 }
 function queued(data) {
   chain = chain.catch(() => {}).then(() => send(data));
@@ -39,9 +50,13 @@ function queued(data) {
 }
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
   (async () => {
-    if (message.type === 'report') {
+    if (message.type === 'status' && !sender.tab) {
+      respond({ok: true, status: await connectionStatus(message.tabId)});
+      return;
+    } else if (message.type === 'report') {
       const {tabId} = await chrome.storage.session.get('tabId');
       if (sender.tab?.id !== tabId || sender.frameId !== 0) return;
+      await chrome.storage.session.set({videoTitle: message.data.title || '', videoState: message.data.state});
       await queued(message.data);
       await syncQueue(tabId);
     } else if (message.type === 'saveCursor' || message.type === 'syncNow') {
@@ -56,7 +71,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
       if (previous.tabId && previous.tabId !== tab.id) {
         await chrome.tabs.sendMessage(previous.tabId, {type: 'disconnectQueue'}).catch(() => {});
       }
-      await chrome.storage.session.set({tabId: tab.id, connectionId: crypto.randomUUID()});
+      await chrome.storage.session.set({tabId: tab.id, connectionId: crypto.randomUUID(), lastSyncAt: 0, videoTitle: '', videoState: 'unavailable'});
       await chrome.scripting.executeScript({target: {tabId: tab.id}, files: ['queue.js', 'content.js']});
       await queued({state: 'unavailable'});
       await chrome.tabs.sendMessage(tab.id, {type: 'reportNow'});

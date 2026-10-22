@@ -5,7 +5,7 @@ const tick = () => new Promise(resolve=>setImmediate(resolve));
   let selected={tabId:1,connectionId:'session-a'};
   const context={Promise,Map,Date,AbortSignal,DISCOJ_TOKEN:'test',importScripts:()=>{},
     fetch:()=>new Promise(resolve=>requests.push(resolve)),
-    chrome:{storage:{session:{get:async()=>({...selected})},local:{get:async()=>({})}},
+    chrome:{storage:{session:{get:async()=>({...selected}),set:async()=>{}},local:{get:async()=>({})}},
       tabs:{sendMessage:async(id,data)=>deliveries.push(data),onRemoved:{addListener:()=>{}}},runtime:{onMessage:{addListener:()=>{}}}}};
   vm.createContext(context);vm.runInContext(fs.readFileSync('browser-extension/background.js','utf8'),context);
   const first=context.syncQueue(1), second=context.syncQueue(1);
