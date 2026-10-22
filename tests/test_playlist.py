@@ -115,7 +115,7 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
             await self.playlist.list()
         self.assertEqual(self.calls, [])
         bot = MusicBot(self.playlist, 1, 2, set())
-        self.assertEqual({x.name for x in bot.tree.get_commands()}, {'추가','목록','삭제'})
+        self.assertEqual({x.name for x in bot.tree.get_commands()}, {'추가','목록','삭제','현재곡'})
         for command in bot.tree.get_commands():
             command.to_dict(bot.tree)
         await bot.close()
@@ -195,6 +195,7 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('DELETE', self.calls)
         view = DeleteConfirmation(self.playlist, item, 7)
         self.items = []
+        self.playlist.recent_additions.clear()  # External removal after the write has settled.
         await view.confirm.callback(interaction)
         self.assertNotIn('DELETE', self.calls)
         self.assertIn('이미 삭제', interaction.edit_original_response.call_args.kwargs['content'])
@@ -253,6 +254,27 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
                 quota = QuotaState(now=lambda: now)
                 quota.block()
                 self.assertEqual(quota.until.astimezone(timezone.utc) - now, timedelta(hours=hours))
+
+    async def test_browser_queue_survives_delayed_reads_and_delete(self):
+        number = await self.playlist.add('https://youtu.be/12345678901', 7)
+        original = list(self.items)
+        self.items = []  # Simulate delayed reads after a successful insert.
+        self.assertEqual((await self.playlist.list())[0]['number'], number)
+        calls = len(self.calls)
+        self.assertEqual((await self.playlist.browser_queue())[0]['title'], 'Test track')
+        self.assertEqual(len(self.calls), calls)  # Browser polling uses no YouTube API.
+        await self.playlist.delete(number)
+        self.items = original  # Simulate delayed reads after a successful delete.
+        self.assertEqual(await self.playlist.list(), [])
+        self.assertEqual(await self.playlist.browser_queue(), [])
+
+    async def test_pending_insert_counts_towards_limit(self):
+        self.playlist.limit = 1
+        await self.playlist.add('https://youtu.be/12345678901', 7)
+        self.items = []
+        with self.assertRaises(PlaylistError):
+            await self.playlist.add('https://youtu.be/abcdefghijk', 7)
+        self.assertEqual(self.calls.count('POST'), 1)
 
     async def test_invalid_links(self):
         for link in ('https://evil.test/watch?v=12345678901', 'https://youtube.com/playlist?list=x', 'file:///12345678901'):

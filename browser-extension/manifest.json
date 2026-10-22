@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "DiscoJ 현재곡 연결",
+  "version": "1.1.0",
+  "description": "선택한 유튜브 탭의 영상 제목과 재생 상태를 맥미니의 DiscoJ 봇으로 전달합니다.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:18766/*",
+    "https://www.youtube.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/*"
+      ],
+      "js": [
+        "queue.js",
+        "content.js"
+      ],
+      "run_at": "document_start"
+    }
+  ]
+}

@@ -1,8 +1,10 @@
-"""No HTTP listener or frontend: Discord Gateway is the entry point."""
+"""Discord bot with an optional authenticated local browser bridge."""
 import asyncio
 import logging
 import os
 import aiohttp
+from aiohttp import web
+from .playback import Playback
 from dotenv import load_dotenv
 from .bot import MusicBot
 from .playlist import Playlist
@@ -23,10 +25,18 @@ async def main():
             logging.warning('유튜브 인증 미설정: 명령어는 연동 설정 필요 안내를 반환합니다.')
         playlist = Playlist(youtube, int(os.getenv('MAX_PLAYLIST_SIZE', '90')),
                             os.getenv('TRACK_NUMBERS_PATH', 'data/track-numbers.json'))
+        playback = Playback(os.getenv('PLAYBACK_TOKEN', ''), playlist=playlist)
         bot = MusicBot(playlist, int(os.environ['DISCORD_GUILD_ID']), int(os.environ['DISCORD_CHANNEL_ID']),
-                       {int(v.strip()) for v in os.getenv('EXCLUDED_USER_IDS', '').split(',') if v.strip()})
-        async with bot:
-            await bot.start(token)
+                       {int(v.strip()) for v in os.getenv('EXCLUDED_USER_IDS', '').split(',') if v.strip()}, playback=playback)
+        runner = web.AppRunner(playback.app(), access_log=None)
+        if playback.token:
+            await runner.setup()
+            await web.TCPSite(runner, os.getenv('PLAYBACK_HOST', '127.0.0.1'), 18766).start()
+        try:
+            async with bot:
+                await bot.start(token)
+        finally:
+            await runner.cleanup()
 
 
 if __name__ == '__main__':

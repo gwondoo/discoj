@@ -109,10 +109,11 @@ class DeleteConfirmation(discord.ui.View):
 
 
 class MusicBot(discord.Client):
-    def __init__(self, playlist, guild_id, channel_id, excluded):
+    def __init__(self, playlist, guild_id, channel_id, excluded, playback=None):
         super().__init__(intents=discord.Intents(guilds=True), allowed_mentions=discord.AllowedMentions.none())
         self.playlist, self.guild_id, self.channel_id = playlist, guild_id, channel_id
         self.excluded = excluded
+        self.playback = playback
         self.tree = app_commands.CommandTree(self)
         self.tree.interaction_check = self.check_channel
         self.tree.on_error = self.command_error
@@ -131,6 +132,18 @@ class MusicBot(discord.Client):
         await send('요청 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.', ephemeral=True)
 
     def register_commands(self):
+        @self.tree.command(name='현재곡', description='연결된 유튜브 탭의 현재 영상 제목과 링크를 확인합니다')
+        async def current_video(interaction: discord.Interaction):
+            data = self.playback.current() if self.playback else None
+            if data is None:
+                await interaction.response.send_message('재생 정보를 확인할 수 없어요. 맥미니의 유튜브 탭과 확장 프로그램 연결을 확인해주세요.', ephemeral=True)
+                return
+            label = '▶️ 현재 재생 중인 영상' if data['state'] == 'playing' else '⏸️ 일시정지된 영상'
+            title = discord.utils.escape_markdown(data['title'])[:700]
+            view = discord.ui.View()
+            view.add_item(discord.ui.Button(label='유튜브에서 보기', style=discord.ButtonStyle.link, url=data['url']))
+            await interaction.response.send_message(f'{label}\n**{title}**', view=view, ephemeral=True)
+
         @self.tree.command(name='추가', description='유튜브 영상을 공용 재생목록에 추가합니다')
         async def add(interaction: discord.Interaction, 링크: str):
             if interaction.user.bot or interaction.user.id in self.excluded:

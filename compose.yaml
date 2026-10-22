@@ -2,6 +2,10 @@ services:
   discoj:
     build: .
     env_file: .env
+    environment:
+      PLAYBACK_HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:18766:18766"
     restart: unless-stopped
     init: true
     volumes:

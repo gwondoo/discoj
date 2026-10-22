@@ -33,7 +33,26 @@ class Playlist:
         self.numbers = TrackNumbers(numbers_path)
         self.cached_items = []
         self.cache_time = 0
+        self.queue_items = None
+        self.recent_deletions = {}
         self.recent_additions = {}  # YouTube list reads can lag behind successful writes.
+
+    async def _read(self):
+        now = time.monotonic()
+        self.recent_additions = {v: entry for v, entry in self.recent_additions.items() if now - entry[1] < 60}
+        self.recent_deletions = {key: stamp for key, stamp in self.recent_deletions.items() if now - stamp < 60}
+        items = [item for item in await self.youtube.items() if item['id'] not in self.recent_deletions]
+        ids = {item['id'] for item in items}
+        items.extend(entry[2] for entry in self.recent_additions.values() if entry[0] not in ids)
+        items = self.numbers.assign(self.youtube.playlist_id, items)
+        self.cached_items, self.cache_time, self.queue_items = items, now, items
+        return items
+
+    async def browser_queue(self):
+        async with self.lock:
+            if self.queue_items is None:
+                await self._read()
+            return [dict(item) for item in self.queue_items]
 
     async def add(self, link, user_id):
         vid = video_id(link)
@@ -42,19 +61,22 @@ class Playlist:
             self.recent_additions = {v: entry for v, entry in self.recent_additions.items() if now - entry[1] < 60}
             if vid in self.recent_additions:
                 raise PlaylistError('방금 재생목록에 추가한 영상이에요. 잠시 후 /목록을 확인해주세요.')
-            items = self.numbers.assign(self.youtube.playlist_id, await self.youtube.items())
+            items = await self._read()
             if any(t['video_id'] == vid for t in items):
                 raise PlaylistError('이미 재생목록에 있는 영상이에요.')
             if len(items) >= self.limit:
                 raise PlaylistError(f'재생목록이 최대 {self.limit}곡에 도달했어요. 목록 정리 후 다시 추가해주세요.')
             data = await self.youtube.insert(vid)
-            self.cache_time = 0
-            self.recent_additions[vid] = (data['id'], time.monotonic())
-            return self.numbers.assign(self.youtube.playlist_id, [{'id': data['id']}])[0]['number']
+            item = {'id': data['id'], 'video_id': vid,
+                    'title': data.get('snippet', {}).get('title') or '추가된 영상'}
+            self.recent_additions[vid] = (data['id'], time.monotonic(), item)
+            self.queue_items = self.numbers.assign(self.youtube.playlist_id, items + [item])
+            self.cached_items, self.cache_time = self.queue_items, 0
+            return self.queue_items[-1]['number']
 
     async def list(self):
         async with self.lock:
-            items = self.numbers.assign(self.youtube.playlist_id, await self.youtube.items())
+            items = await self._read()
             self.cached_items, self.cache_time = items, time.monotonic()
             return items
 
@@ -76,9 +98,11 @@ class Playlist:
             item_id = self.numbers.item_id(self.youtube.playlist_id, number)
             if item_id is None:
                 raise PlaylistError('이미 삭제됐거나 없는 번호예요. /목록을 확인해주세요.')
-            items = self.numbers.assign(self.youtube.playlist_id, await self.youtube.items())
+            items = await self._read()
             if not any(t['id'] == item_id for t in items):
                 raise PlaylistError('이미 삭제됐거나 없는 번호예요. /목록을 확인해주세요.')
             await self.youtube.remove(item_id)
-            self.cached_items = [item for item in self.cached_items if item['id'] != item_id]
+            self.recent_deletions[item_id] = time.monotonic()
+            self.queue_items = [item for item in items if item['id'] != item_id]
+            self.cached_items = self.queue_items
             self.recent_additions = {v: entry for v, entry in self.recent_additions.items() if entry[0] != item_id}
