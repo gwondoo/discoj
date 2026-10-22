@@ -1,12 +1,31 @@
 (() => {
   globalThis.discojContentCleanup?.();
+  // Old extension worlds can survive an extension reload. Fence them without reloading media.
+  const root = document.documentElement;
+  const legacyPanels = [...document.querySelectorAll('#discoj-live-queue')];
+  if (legacyPanels.length && !root.dataset.discojOwner) {
+    const url = new URL(location.href);
+    if (url.searchParams.has('list')) {
+      url.searchParams.set('discoj_list', url.searchParams.get('list'));
+      url.searchParams.delete('list');
+      history.replaceState(history.state, '', url.href);
+    }
+  }
+  legacyPanels.forEach(element => element.remove());
+  const owner = String(Date.now()) + Math.random();
+  root.dataset.discojOwner = owner;
+  const ownsPage = () => root.dataset.discojOwner === owner;
+  const pagePlaylist = () => {
+    const params = new URL(location.href).searchParams;
+    return params.get('list') || params.get('discoj_list');
+  };
   let navigating = false, connected = false, snapshot = null, received = 0, panel = null, nativePanel = null;
-  let disconnected = false, transition = false;
+  let disconnected = false, transition = false, pending = null;
   const queue = new globalThis.DiscoJQueue();
   const listeners = [];
   const currentId = () => new URL(location.href).searchParams.get('v');
-  const active = () => connected && snapshot && location.pathname === '/watch' &&
-    new URL(location.href).searchParams.get('list') === snapshot.playlistId;
+  const active = () => ownsPage() && connected && snapshot && location.pathname === '/watch' &&
+    pagePlaylist() === snapshot.playlistId;
   function listen(target, event, callback, capture = false) {
     target.addEventListener(event, callback, capture);
     listeners.push(() => target.removeEventListener(event, callback, capture));
@@ -16,13 +35,38 @@
     if (nativePanel) { nativePanel.style.removeProperty('display'); nativePanel = null; }
   }
   function navigate(item) {
-    if (!item || transition) return;
+    if (!item || transition || disconnected || Date.now() - received > 30000 || item.video_id === currentId()) return;
     transition = true;
     const url = new URL('https://www.youtube.com/watch');
     url.searchParams.set('v', item.video_id); url.searchParams.set('list', snapshot.playlistId);
     location.assign(url.href);
   }
-  function step(direction) { navigate(direction === 'next' ? queue.next() : queue.previous()); }
+  function saveCursor() {
+    chrome.runtime.sendMessage({type: 'saveCursor', cursor: {...queue.cursor(), waitingForNext: pending?.auto === true}}).catch(() => {});
+  }
+  function applyPending(requestedAt) {
+    if (!pending || !active() || navigating || requestedAt < pending.createdAt) return;
+    const video = document.querySelector('video.html5-main-video');
+    if (pending.auto && !video?.ended) { pending = null; saveCursor(); return; }
+    const item = pending.id ? queue.items.find(item => item.video_id === pending.id) :
+      pending.direction === 'next' ? queue.next() : queue.previous();
+    if (item) { pending = null; saveCursor(); navigate(item); }
+    else if (!pending.auto) { pending = null; saveCursor(); }
+  }
+  function step(direction, auto = false, id = null) {
+    if (!active() || transition) return;
+    const action = {direction, auto, id, createdAt: Date.now()};
+    pending = action;
+    saveCursor();
+    chrome.runtime.sendMessage({type: 'syncNow'}).then(result => {
+      if (result?.ok === false) throw new Error('sync failed');
+    }).catch(() => {
+      if (pending !== action) return;
+      disconnected = true;
+      if (!pending?.auto) pending = null;
+      render();
+    });
+  }
   function render() {
     if (!active()) { restore(); return; }
     const native = document.querySelector('ytd-playlist-panel-renderer');
@@ -43,16 +87,17 @@
     if (!queue.items.some(item => item.video_id === currentId())) {
       const removed = document.createElement('p'); removed.textContent = '현재 영상은 목록에서 제거됐어요. 재생은 끝까지 유지해요.'; root.append(removed);
     }
-    const previous = document.createElement('button'); previous.textContent = '이전'; previous.disabled = !queue.previous(); previous.onclick = () => step('previous'); root.append(previous);
-    const next = document.createElement('button'); next.textContent = '다음'; next.disabled = !queue.next(); next.onclick = () => step('next'); root.append(next);
+    const previous = document.createElement('button'); previous.textContent = '이전'; previous.disabled = disconnected || !queue.previous(); previous.onclick = () => step('previous'); root.append(previous);
+    const next = document.createElement('button'); next.textContent = '다음'; next.disabled = disconnected || !queue.next(); next.onclick = () => step('next'); root.append(next);
     const list = document.createElement('div'); list.className = 'list';
     for (const item of queue.items) {
       const button = document.createElement('button'); button.className = 'track' + (item.video_id === currentId() ? ' current' : '');
-      button.textContent = `${item.number} · ${item.title}`; button.onclick = () => navigate(item); list.append(button);
+      button.textContent = `${item.number} · ${item.title}`; button.disabled = disconnected; button.onclick = () => step(null, false, item.video_id); list.append(button);
     }
     root.append(list);
   }
   function report() {
+    if (!ownsPage()) return;
     const id = currentId();
     const video = document.querySelector('video.html5-main-video');
     const title = document.querySelector('ytd-watch-metadata h1 yt-formatted-string')?.textContent?.trim();
@@ -62,25 +107,40 @@
     if (connected && Date.now() - received > 30000 && !disconnected) { disconnected = true; render(); }
   }
   function onMessage(message) {
+    if (!ownsPage()) return;
     if (message.type === 'reportNow') report();
-    if (message.type === 'disconnectQueue') { connected = false; snapshot = null; restore(); }
+    if (message.type === 'disconnectQueue') { saveCursor(); connected = false; snapshot = null; pending = null; restore(); }
     if (message.type === 'queueSnapshot' && message.data && Array.isArray(message.data.items)) {
       const changed = snapshot?.revision !== message.data.revision || !connected || disconnected || queue.current !== currentId();
+      const first = !connected;
+      if (first) {
+        queue.restore(message.cursor, message.data.playlistId, currentId());
+        if (message.cursor?.waitingForNext && message.cursor.current === currentId() &&
+            message.cursor.playlistId === message.data.playlistId &&
+            document.querySelector('video.html5-main-video')?.ended) {
+          pending = {direction: 'next', auto: true, createdAt: message.requestedAt || Date.now()};
+        }
+      }
       connected = true; received = Date.now(); disconnected = false; snapshot = message.data;
       queue.update(snapshot, currentId());
+      saveCursor();
+      applyPending(message.requestedAt || 0);
       if (changed || !panel?.isConnected) render();
     }
   }
   chrome.runtime.onMessage.addListener(onMessage);
-  listen(document, 'yt-navigate-start', () => { navigating = true; report(); });
+  listen(document, 'yt-navigate-start', () => { navigating = true; pending = null; report(); });
   listen(document, 'yt-navigate-finish', () => { navigating = false; transition = false; if (snapshot) queue.update(snapshot, currentId()); render(); report(); });
-  for (const event of ['play', 'pause', 'loadeddata', 'emptied']) listen(document, event, report, true);
+  for (const event of ['play', 'pause', 'loadeddata', 'emptied']) listen(document, event, () => {
+    if (pending?.auto && !document.querySelector('video.html5-main-video')?.ended) { pending = null; saveCursor(); }
+    report();
+  }, true);
   // Capture the natural end before target/document listeners use YouTube's stale queue.
   listen(window, 'ended', event => {
     if (!active() || event.target !== document.querySelector('video.html5-main-video') ||
         document.querySelector('.html5-video-player.ad-showing')) return;
     event.stopImmediatePropagation();
-    step('next');
+    step('next', true);
     report();
   }, true);
   listen(window, 'click', event => {
