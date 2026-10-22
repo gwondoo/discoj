@@ -1,9 +1,8 @@
 """YouTube playlist source of truth; no playback or local playlist cache."""
 import asyncio
 import time
-from datetime import datetime
-from zoneinfo import ZoneInfo
 import aiohttp
+from .quota import QuotaState
 
 
 class PlaylistError(ValueError):
@@ -13,7 +12,7 @@ class PlaylistError(ValueError):
 class YouTube:
     def __init__(self, session, playlist_id, client_id, client_secret, refresh_token,
                  base_url='https://www.googleapis.com/youtube/v3',
-                 token_url='https://oauth2.googleapis.com/token'):
+                 token_url='https://oauth2.googleapis.com/token', quota_path=None):
         self.http = session
         self.playlist_id = playlist_id
         self.credentials = dict(client_id=client_id, client_secret=client_secret,
@@ -22,7 +21,7 @@ class YouTube:
         self.token = ''
         self.expires = 0
         self.auth_lock = asyncio.Lock()
-        self.blocked_day = None
+        self.quota = QuotaState(quota_path)
 
     @property
     def configured(self):
@@ -52,9 +51,8 @@ class YouTube:
     async def request(self, method, resource, params=None, body=None):
         if not self.configured:
             raise PlaylistError('유튜브 재생목록 연동 설정이 필요해요. 관리자에게 문의해주세요.')
-        day = datetime.now(ZoneInfo('America/Los_Angeles')).date()
-        if self.blocked_day == day:
-            raise PlaylistError('유튜브 일일 API 한도를 소진했어요. 태평양 시간 자정 초기화 후 다시 시도해주세요.')
+        if self.quota.blocked():
+            raise PlaylistError(self.quota.message())
         # Only authentication failures are retried. Ambiguous write failures are not replayed.
         for attempt in range(2):
             token = await self.access_token()
@@ -75,8 +73,8 @@ class YouTube:
                     details = data.get('error', {}).get('errors', []) if isinstance(data, dict) else []
                     reasons = {item.get('reason') for item in details if isinstance(item, dict)}
                     if reasons & {'quotaExceeded', 'dailyLimitExceeded'}:
-                        self.blocked_day = day
-                        raise PlaylistError('유튜브 일일 API 한도를 소진했어요. 초기화 후 다시 시도해주세요.')
+                        self.quota.block()
+                        raise PlaylistError(self.quota.message())
                     if response.status == 404:
                         raise PlaylistError('영상 또는 재생목록 항목을 찾을 수 없어요. /목록을 다시 확인해주세요.')
                     if response.status == 403:

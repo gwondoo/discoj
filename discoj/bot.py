@@ -1,4 +1,5 @@
 import logging
+import asyncio
 import discord
 from discord import app_commands
 from .youtube import PlaylistError
@@ -7,8 +8,10 @@ log = logging.getLogger(__name__)
 
 
 class PlaylistView(discord.ui.View):
-    def __init__(self, items, url):
+    def __init__(self, items, url, playlist=None):
         super().__init__(timeout=300)
+        self.playlist = playlist
+        self.refresh_lock = asyncio.Lock()
         self.items, self.page = items, 0
         self.pages = max(1, (len(items) + 4) // 5)
         self.add_item(discord.ui.Button(label='유튜브 재생목록 보기',
@@ -40,6 +43,69 @@ class PlaylistView(discord.ui.View):
         self.page = min(self.pages - 1, self.page + 1)
         self.update_buttons()
         await interaction.response.edit_message(content=self.content(), view=self)
+
+    @discord.ui.button(label='새로고침', style=discord.ButtonStyle.secondary)
+    async def refresh(self, interaction, button):
+        await interaction.response.defer()
+        async with self.refresh_lock:
+            try:
+                items = await self.playlist.list()
+                self.items = items
+                self.pages = max(1, (len(items) + 4) // 5)
+                self.page = min(self.page, self.pages - 1)
+                self.update_buttons()
+                content = self.content()
+            except PlaylistError as error:
+                content = f'{error}\n\n이전에 조회한 목록이에요.\n' + self.content()
+            await interaction.edit_original_response(content=content, view=self)
+
+
+def playlist_link(url):
+    view = discord.ui.View()
+    view.add_item(discord.ui.Button(label='유튜브 재생목록 보기',
+                                   style=discord.ButtonStyle.link, url=url))
+    return view
+
+
+class DeleteConfirmation(discord.ui.View):
+    def __init__(self, playlist, item, user_id):
+        super().__init__(timeout=120)
+        self.playlist, self.item, self.user_id = playlist, item, user_id
+        self.lock = asyncio.Lock()
+        self.finished = False
+
+    async def interaction_check(self, interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message('명령을 실행한 사람만 확인할 수 있어요.', ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label='삭제', style=discord.ButtonStyle.danger)
+    async def confirm(self, interaction, button):
+        await interaction.response.defer()
+        async with self.lock:
+            if self.finished:
+                return
+            self.finished = True
+            try:
+                await self.playlist.delete(self.item['number'])
+                content = f"{self.item['number']}번을 재생목록에서 제거했어요."
+            except PlaylistError as error:
+                content = str(error)
+            await interaction.edit_original_response(content=content,
+                view=playlist_link(self.playlist.youtube.url))
+            self.stop()
+
+    @discord.ui.button(label='취소', style=discord.ButtonStyle.secondary)
+    async def cancel(self, interaction, button):
+        await interaction.response.defer()
+        async with self.lock:
+            if self.finished:
+                return
+            self.finished = True
+            await interaction.edit_original_response(content='삭제를 취소했어요.', view=None)
+            self.stop()
+
 
 
 class MusicBot(discord.Client):
@@ -80,27 +146,40 @@ class MusicBot(discord.Client):
                 await interaction.followup.send(
                     f'✅ `{number}`번으로 재생목록에 추가했어요.', view=view, ephemeral=True)
             except PlaylistError as error:
-                await interaction.followup.send(str(error), ephemeral=True)
+                await interaction.followup.send(str(error), view=playlist_link(self.playlist.youtube.url), ephemeral=True)
 
         @self.tree.command(name='목록', description='곡 번호와 영상 제목으로 공용 재생목록을 조회합니다')
         async def listing(interaction: discord.Interaction):
             await interaction.response.defer(ephemeral=True, thinking=True)
             try:
                 items = await self.playlist.list()
-                view = PlaylistView(items, self.playlist.youtube.url)
+                view = PlaylistView(items, self.playlist.youtube.url, self.playlist)
                 await interaction.followup.send(view.content(), view=view, ephemeral=True)
             except PlaylistError as error:
-                await interaction.followup.send(str(error), ephemeral=True)
+                await interaction.followup.send(str(error), view=playlist_link(self.playlist.youtube.url), ephemeral=True)
 
         @self.tree.command(name='삭제', description='곡 번호로 공용 재생목록의 곡을 제거합니다. 누구나 삭제할 수 있습니다')
-        @app_commands.describe(번호='/목록에 표시된 곡 번호를 입력하세요. 예: 13')
+        @app_commands.describe(번호='곡 번호를 직접 입력하거나 영상 제목으로 검색하세요.')
         async def delete(interaction: discord.Interaction, 번호: app_commands.Range[int, 1]):
             await interaction.response.defer(ephemeral=True, thinking=True)
             try:
-                await self.playlist.delete(번호)
-                await interaction.followup.send(f'{번호}번을 재생목록에서 제거했어요.', ephemeral=True)
+                item = await self.playlist.find(번호)
+                if item is None:
+                    raise PlaylistError('이미 삭제됐거나 없는 번호예요. /목록을 확인해주세요.')
+                title = discord.utils.escape_markdown(' '.join(item['title'].split()))[:300]
+                await interaction.followup.send(
+                    f'**{번호}번 · {title}**\n이 곡을 재생목록에서 삭제할까요?',
+                    view=DeleteConfirmation(self.playlist, item, interaction.user.id), ephemeral=True)
             except PlaylistError as error:
-                await interaction.followup.send(str(error), ephemeral=True)
+                await interaction.followup.send(str(error), view=playlist_link(self.playlist.youtube.url), ephemeral=True)
+
+        @delete.autocomplete('번호')
+        async def delete_choices(interaction: discord.Interaction, current: str):
+            if interaction.guild_id != self.guild_id or interaction.channel_id != self.channel_id:
+                return []
+            return [app_commands.Choice(name=f"{item['number']} · {' '.join(item['title'].split())}"[:100],
+                                       value=item['number'])
+                    for item in await self.playlist.choices(current)]
 
     async def setup_hook(self):
         guild = discord.Object(id=self.guild_id)

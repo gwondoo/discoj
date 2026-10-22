@@ -31,6 +31,8 @@ class Playlist:
         self.youtube, self.limit = youtube, limit
         self.lock = asyncio.Lock()
         self.numbers = TrackNumbers(numbers_path)
+        self.cached_items = []
+        self.cache_time = 0
         self.recent_additions = {}  # YouTube list reads can lag behind successful writes.
 
     async def add(self, link, user_id):
@@ -46,12 +48,28 @@ class Playlist:
             if len(items) >= self.limit:
                 raise PlaylistError(f'재생목록이 최대 {self.limit}곡에 도달했어요. 목록 정리 후 다시 추가해주세요.')
             data = await self.youtube.insert(vid)
+            self.cache_time = 0
             self.recent_additions[vid] = (data['id'], time.monotonic())
             return self.numbers.assign(self.youtube.playlist_id, [{'id': data['id']}])[0]['number']
 
     async def list(self):
         async with self.lock:
-            return self.numbers.assign(self.youtube.playlist_id, await self.youtube.items())
+            items = self.numbers.assign(self.youtube.playlist_id, await self.youtube.items())
+            self.cached_items, self.cache_time = items, time.monotonic()
+            return items
+
+    async def choices(self, query):
+        if not self.cache_time or time.monotonic() - self.cache_time > 30:
+            try:
+                await asyncio.wait_for(self.list(), timeout=1.5)
+            except (PlaylistError, asyncio.TimeoutError):
+                pass
+        query = str(query).casefold().strip()
+        return [item for item in self.cached_items
+                if query in str(item['number']) or query in item['title'].casefold()][:25]
+
+    async def find(self, number):
+        return next((item for item in await self.list() if item['number'] == number), None)
 
     async def delete(self, number):
         async with self.lock:
@@ -62,4 +80,5 @@ class Playlist:
             if not any(t['id'] == item_id for t in items):
                 raise PlaylistError('이미 삭제됐거나 없는 번호예요. /목록을 확인해주세요.')
             await self.youtube.remove(item_id)
+            self.cached_items = [item for item in self.cached_items if item['id'] != item_id]
             self.recent_additions = {v: entry for v, entry in self.recent_additions.items() if entry[0] != item_id}

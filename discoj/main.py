@@ -17,7 +17,8 @@ async def main():
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
         youtube = YouTube(session, os.getenv('YOUTUBE_PLAYLIST_ID', ''),
                           os.getenv('GOOGLE_CLIENT_ID', ''), os.getenv('GOOGLE_CLIENT_SECRET', ''),
-                          os.getenv('GOOGLE_REFRESH_TOKEN', ''))
+                          os.getenv('GOOGLE_REFRESH_TOKEN', ''),
+                          quota_path=os.getenv('QUOTA_STATE_PATH', 'data/quota-state.json'))
         if not youtube.configured:
             logging.warning('유튜브 인증 미설정: 명령어는 연동 설정 필요 안내를 반환합니다.')
         playlist = Playlist(youtube, int(os.getenv('MAX_PLAYLIST_SIZE', '90')),

@@ -6,11 +6,13 @@ import unittest
 import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock
+from datetime import datetime, timezone, timedelta
+from discoj.quota import QuotaState
 from aiohttp import web, ClientSession, ClientTimeout
 from aiohttp.test_utils import TestServer
 from discoj.youtube import YouTube, PlaylistError
 from discoj.playlist import Playlist, video_id
-from discoj.bot import MusicBot, PlaylistView
+from discoj.bot import MusicBot, PlaylistView, DeleteConfirmation
 
 
 class PlaylistTests(unittest.IsolatedAsyncioTestCase):
@@ -88,11 +90,11 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(PlaylistError):
             await self.playlist.list()
         self.assertEqual(len(self.calls), count)
-        self.youtube.blocked_day = None
+        self.youtube.quota.until = None
         self.error = (403, 'forbidden')
         with self.assertRaises(PlaylistError):
             await self.playlist.list()
-        self.assertIsNone(self.youtube.blocked_day)
+        self.assertIsNone(self.youtube.quota.until)
 
     async def test_duplicate_when_youtube_list_lags(self):
         await self.playlist.add('https://youtu.be/12345678901', 1)
@@ -156,6 +158,101 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('`6` · 영상 제목', view.content())
         self.assertNotIn('`1` ·', view.content())
         await bot.close()
+
+    def interaction(self):
+        interaction = Mock()
+        interaction.user.id = 7
+        interaction.response.defer = AsyncMock()
+        interaction.response.send_message = AsyncMock()
+        interaction.followup.send = AsyncMock()
+        interaction.edit_original_response = AsyncMock()
+        return interaction
+
+    async def test_delete_requires_confirmation_and_only_once(self):
+        number = await self.playlist.add('https://youtu.be/12345678901', 7)
+        bot = MusicBot(self.playlist, 1, 2, set())
+        interaction = self.interaction()
+        await bot.tree.get_command('삭제').callback(interaction, number)
+        self.assertNotIn('DELETE', self.calls)
+        args, kwargs = interaction.followup.send.call_args
+        self.assertIn('Test track', args[0])
+        self.assertTrue(kwargs['ephemeral'])
+        view = kwargs['view']
+        other = self.interaction()
+        other.user.id = 99
+        self.assertFalse(await view.interaction_check(other))
+        await asyncio.gather(view.confirm.callback(self.interaction()), view.confirm.callback(self.interaction()))
+        self.assertEqual(self.calls.count('DELETE'), 1)
+        await bot.close()
+
+    async def test_cancel_and_already_removed_confirmation(self):
+        number = await self.playlist.add('https://youtu.be/12345678901', 7)
+        item = await self.playlist.find(number)
+        view = DeleteConfirmation(self.playlist, item, 7)
+        interaction = self.interaction()
+        await view.cancel.callback(interaction)
+        await view.confirm.callback(interaction)
+        self.assertNotIn('DELETE', self.calls)
+        view = DeleteConfirmation(self.playlist, item, 7)
+        self.items = []
+        await view.confirm.callback(interaction)
+        self.assertNotIn('DELETE', self.calls)
+        self.assertIn('이미 삭제', interaction.edit_original_response.call_args.kwargs['content'])
+
+    async def test_autocomplete_matches_title_and_number_without_repeated_reads(self):
+        await self.playlist.add('https://youtu.be/12345678901', 7)
+        self.assertEqual((await self.playlist.choices('track'))[0]['number'], 1)
+        calls = len(self.calls)
+        self.assertEqual((await self.playlist.choices('1'))[0]['title'], 'Test track')
+        self.assertEqual(await self.playlist.choices('missing'), [])
+        self.assertEqual(len(self.calls), calls)
+        bot = MusicBot(self.playlist, 1, 2, set())
+        interaction = self.interaction()
+        interaction.guild_id, interaction.channel_id = 1, 2
+        choices = await bot.tree.get_command('삭제')._params['번호'].autocomplete(interaction, 'track')
+        self.assertEqual(choices[0].value, 1)
+        self.assertIn('Test track', choices[0].name)
+        await bot.close()
+
+    async def test_refresh_edits_same_message_and_clamps_page(self):
+        items = [{'id':str(i), 'number':i+1, 'title':'Old'} for i in range(12)]
+        view = PlaylistView(items, self.youtube.url, self.playlist)
+        view.page = 2
+        interaction = self.interaction()
+        await view.refresh.callback(interaction)
+        self.assertEqual(view.page, 0)
+        self.assertEqual(view.pages, 1)
+        self.assertIn('0곡', interaction.edit_original_response.call_args.kwargs['content'])
+        interaction.followup.send.assert_not_called()
+        self.error = (403, 'quotaExceeded')
+        await view.refresh.callback(interaction)
+        self.assertIn('API 한도', interaction.edit_original_response.call_args.kwargs['content'])
+        self.assertEqual(view.children[-1].url, self.youtube.url)
+
+    async def test_quota_persists_restart_and_expires_at_pacific_midnight(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'quota.json'
+            self.youtube.quota = QuotaState(path)
+            self.error = (403, 'quotaExceeded')
+            with self.assertRaises(PlaylistError):
+                await self.playlist.list()
+            calls = len(self.calls)
+            self.youtube.quota = QuotaState(path)
+            for action in (self.youtube.items(), self.youtube.insert('12345678901'), self.youtube.remove('old')):
+                with self.assertRaises(PlaylistError):
+                    await action
+            self.assertEqual(len(self.calls), calls)
+            until = self.youtube.quota.until
+            self.error = None
+            self.youtube.quota.now = lambda: until
+            await self.playlist.list()
+            self.assertIsNone(QuotaState(path).until)
+            # The next local midnight spans 23/25 hours on DST transition days.
+            for start, hours in [('2026-03-08T08:00:00+00:00', 23), ('2026-11-01T07:00:00+00:00', 25)]:
+                now = datetime.fromisoformat(start)
+                quota = QuotaState(now=lambda: now)
+                quota.block()
+                self.assertEqual(quota.until.astimezone(timezone.utc) - now, timedelta(hours=hours))
 
     async def test_invalid_links(self):
         for link in ('https://evil.test/watch?v=12345678901', 'https://youtube.com/playlist?list=x', 'file:///12345678901'):
