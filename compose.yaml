@@ -4,3 +4,8 @@ services:
     env_file: .env
     restart: unless-stopped
     init: true
+    volumes:
+      - discoj_data:/app/data
+
+volumes:
+  discoj_data:

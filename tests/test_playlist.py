@@ -3,11 +3,14 @@ Response shapes follow the official playlistItems and OAuth token contracts.
 """
 import asyncio
 import unittest
+import tempfile
+from pathlib import Path
+from unittest.mock import AsyncMock, Mock
 from aiohttp import web, ClientSession, ClientTimeout
 from aiohttp.test_utils import TestServer
 from discoj.youtube import YouTube, PlaylistError
 from discoj.playlist import Playlist, video_id
-from discoj.bot import MusicBot
+from discoj.bot import MusicBot, PlaylistView
 
 
 class PlaylistTests(unittest.IsolatedAsyncioTestCase):
@@ -16,6 +19,7 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
         self.calls = []
         self.error = None
         self.auth_calls = 0
+        self.insert_count = 0
         app = web.Application()
         app.router.add_post('/token', self.token)
         app.router.add_route('*', '/youtube/v3/playlistItems', self.handle)
@@ -51,7 +55,8 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
         if request.method == 'POST':
             body = await request.json()
             self.assertEqual(body['snippet']['playlistId'], 'playlist')
-            item = {'id':f'item-{len(self.items)+1}', 'snippet':{'title':'Test track', 'resourceId':body['snippet']['resourceId']}}
+            self.insert_count += 1
+            item = {'id':f'item-{self.insert_count}', 'snippet':{'title':'Test track', 'resourceId':body['snippet']['resourceId']}}
             self.items.append(item)
             return web.json_response(item)
         if request.method == 'DELETE':
@@ -61,11 +66,11 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_add_duplicate_delete_and_permissions(self):
         results = await asyncio.gather(*(self.playlist.add('https://youtu.be/12345678901', i) for i in range(5)), return_exceptions=True)
-        self.assertEqual(sum(isinstance(x, str) for x in results), 1)
+        self.assertEqual(sum(type(x) is int for x in results), 1)
         self.assertEqual(self.calls.count('POST'), 1)
         with self.assertRaises(PlaylistError):
-            await self.playlist.delete('item-1', 99)
-        await self.playlist.delete('item-1', 0)
+            await self.playlist.delete(1, 99)
+        await self.playlist.delete(1, 0)
         self.assertEqual(await self.playlist.list(), [])
         self.assertEqual(self.auth_calls, 1)
 
@@ -75,8 +80,8 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(PlaylistError):
             await self.playlist.add('https://youtu.be/abcdefghijk', 1)
         with self.assertRaises(PlaylistError):
-            await self.playlist.delete('old-0', 1)
-        await self.playlist.delete('old-0', 1, admin=True)
+            await self.playlist.delete(1, 1)
+        await self.playlist.delete(1, 1, admin=True)
         self.assertEqual(len(self.items), 89)
 
     async def test_quota_circuit_breaker_and_permission_error(self):
@@ -116,6 +121,47 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual({x.name for x in bot.tree.get_commands()}, {'추가','목록','삭제'})
         for command in bot.tree.get_commands():
             command.to_dict(bot.tree)
+        await bot.close()
+
+    async def test_numbers_survive_restart_and_are_not_reused(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'numbers.json'
+            playlist = Playlist(self.youtube, numbers_path=path)
+            one = await playlist.add('https://youtu.be/12345678901', 1)
+            two = await playlist.add('https://youtu.be/abcdefghijk', 1)
+            three = await playlist.add('https://youtu.be/ABCDEFGHIJK', 1)
+            self.assertEqual((one, two, three), (1, 2, 3))
+            await playlist.delete(two, 1)
+            playlist = Playlist(self.youtube, numbers_path=path)
+            four = await playlist.add('https://youtu.be/98765432109', 1)
+            self.assertEqual(four, 4)
+            self.assertEqual([item['number'] for item in await playlist.list()], [1, 3, 4])
+            with self.assertRaises(PlaylistError):
+                await playlist.delete(two, 1, admin=True)
+            self.assertEqual(self.calls.count('DELETE'), 1)
+            # Ownership stays in memory, so old entries still require an administrator.
+            with self.assertRaises(PlaylistError):
+                await playlist.delete(one, 1)
+            await playlist.delete(one, 1, admin=True)
+
+    async def test_listing_is_private_with_titles_and_link(self):
+        await self.playlist.add('https://youtu.be/12345678901', 1)
+        bot = MusicBot(self.playlist, 1, 2, set())
+        interaction = Mock()
+        interaction.response.defer = AsyncMock()
+        interaction.followup.send = AsyncMock()
+        await bot.tree.get_command('목록').callback(interaction)
+        interaction.response.defer.assert_awaited_once_with(ephemeral=True, thinking=True)
+        args, kwargs = interaction.followup.send.call_args
+        self.assertTrue(kwargs['ephemeral'])
+        self.assertIn('`1` · Test track', args[0])
+        self.assertEqual(kwargs['view'].children[-1].url, self.youtube.url)
+        view = PlaylistView([{'number':i+1, 'title':'영상 제목'} for i in range(21)], self.youtube.url)
+        self.assertIn('1/3페이지', view.content())
+        interaction.response.edit_message = AsyncMock()
+        await view.next_page.callback(interaction)
+        self.assertIn('`11` · 영상 제목', view.content())
+        self.assertNotIn('`1` ·', view.content())
         await bot.close()
 
     async def test_invalid_links(self):

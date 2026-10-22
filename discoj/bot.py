@@ -6,6 +6,42 @@ from .youtube import PlaylistError
 log = logging.getLogger(__name__)
 
 
+class PlaylistView(discord.ui.View):
+    def __init__(self, items, url):
+        super().__init__(timeout=300)
+        self.items, self.page = items, 0
+        self.pages = max(1, (len(items) + 9) // 10)
+        self.add_item(discord.ui.Button(label='유튜브 재생목록 보기',
+                                       style=discord.ButtonStyle.link, url=url, row=1))
+        self.update_buttons()
+
+    def update_buttons(self):
+        self.previous.disabled = self.page == 0
+        self.next_page.disabled = self.page == self.pages - 1
+
+    def content(self):
+        lines = [f'🎵 **공용 재생목록 · {len(self.items)}곡**']
+        for item in self.items[self.page * 10:(self.page + 1) * 10]:
+            title = discord.utils.escape_markdown(' '.join(item['title'].split()))[:140]
+            lines.append(f"`{item['number']}` · {title}")
+        if not self.items:
+            lines.append('아직 추가된 곡이 없어요. /추가로 곡을 추가해주세요.')
+        lines.append(f'\n{self.page + 1}/{self.pages}페이지')
+        return '\n'.join(lines)
+
+    @discord.ui.button(label='이전', style=discord.ButtonStyle.secondary)
+    async def previous(self, interaction, button):
+        self.page = max(0, self.page - 1)
+        self.update_buttons()
+        await interaction.response.edit_message(content=self.content(), view=self)
+
+    @discord.ui.button(label='다음', style=discord.ButtonStyle.secondary)
+    async def next_page(self, interaction, button):
+        self.page = min(self.pages - 1, self.page + 1)
+        self.update_buttons()
+        await interaction.response.edit_message(content=self.content(), view=self)
+
+
 class MusicBot(discord.Client):
     def __init__(self, playlist, guild_id, channel_id, excluded):
         super().__init__(intents=discord.Intents(guilds=True), allowed_mentions=discord.AllowedMentions.none())
@@ -36,39 +72,30 @@ class MusicBot(discord.Client):
                 return
             await interaction.response.defer(thinking=True)
             try:
-                item_id = await self.playlist.add(링크, interaction.user.id)
+                number = await self.playlist.add(링크, interaction.user.id)
                 await interaction.followup.send(
-                    f'✅ 재생목록에 추가했어요.\n삭제용 항목 ID: `{item_id}`\n'
+                    f'✅ `{number}`번으로 재생목록에 추가했어요.\n'
                     f'[재생목록](<{self.playlist.youtube.url}>)', suppress_embeds=True)
             except PlaylistError as error:
                 await interaction.followup.send(str(error))
 
-        @self.tree.command(name='목록', description='실제 유튜브 재생목록을 조회합니다')
-        async def listing(interaction: discord.Interaction, 페이지: app_commands.Range[int, 1] = 1):
+        @self.tree.command(name='목록', description='곡 번호와 영상 제목으로 공용 재생목록을 조회합니다')
+        async def listing(interaction: discord.Interaction):
             await interaction.response.defer(ephemeral=True, thinking=True)
             try:
                 items = await self.playlist.list()
-                pages = max(1, (len(items) + 9) // 10)
-                if 페이지 > pages:
-                    raise PlaylistError(f'마지막 페이지는 {pages}페이지예요.')
-                embed = discord.Embed(title=f'🎵 공용 재생목록 · {len(items)}곡', url=self.playlist.youtube.url, color=0xb8d87a)
-                for item in items[(페이지-1)*10:페이지*10]:
-                    title = discord.utils.escape_markdown(item['title'][:150])
-                    link = f"[유튜브에서 보기](https://youtu.be/{item['video_id']})" if item['video_id'] else '재생 불가 영상'
-                    embed.add_field(name=title, value=f"{link}\n삭제용 항목 ID: `{item['id']}`", inline=False)
-                if not items:
-                    embed.description = '아직 추가된 곡이 없어요. /추가로 곡을 추가해주세요.'
-                embed.set_footer(text=f'{페이지}/{pages}페이지 · /목록 페이지:2 · /삭제 항목ID:…')
-                await interaction.followup.send(content=f'🎵 공용 재생목록 · {len(items)}곡 · {페이지}/{pages}페이지', embed=embed, ephemeral=True)
+                view = PlaylistView(items, self.playlist.youtube.url)
+                await interaction.followup.send(view.content(), view=view, ephemeral=True)
             except PlaylistError as error:
                 await interaction.followup.send(str(error), ephemeral=True)
 
         @self.tree.command(name='삭제', description='재생목록에서 본인이 추가한 곡을 제거합니다. 관리자는 모든 곡을 제거할 수 있습니다')
-        async def delete(interaction: discord.Interaction, 항목id: str):
+        @app_commands.describe(번호='/목록에 표시된 곡 번호를 입력하세요. 예: 13')
+        async def delete(interaction: discord.Interaction, 번호: app_commands.Range[int, 1]):
             await interaction.response.defer(ephemeral=True, thinking=True)
             try:
-                await self.playlist.delete(항목id.strip(), interaction.user.id, interaction.permissions.administrator)
-                await interaction.followup.send('재생목록에서 제거했어요. 원본 유튜브 영상은 삭제되지 않습니다.', ephemeral=True)
+                await self.playlist.delete(번호, interaction.user.id, interaction.permissions.administrator)
+                await interaction.followup.send(f'{번호}번을 재생목록에서 제거했어요.', ephemeral=True)
             except PlaylistError as error:
                 await interaction.followup.send(str(error), ephemeral=True)
 

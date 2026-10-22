@@ -20,7 +20,8 @@ async def main():
                           os.getenv('GOOGLE_REFRESH_TOKEN', ''))
         if not youtube.configured:
             logging.warning('유튜브 인증 미설정: 명령어는 연동 설정 필요 안내를 반환합니다.')
-        playlist = Playlist(youtube, int(os.getenv('MAX_PLAYLIST_SIZE', '90')))
+        playlist = Playlist(youtube, int(os.getenv('MAX_PLAYLIST_SIZE', '90')),
+                            os.getenv('TRACK_NUMBERS_PATH', 'data/track-numbers.json'))
         bot = MusicBot(playlist, int(os.environ['DISCORD_GUILD_ID']), int(os.environ['DISCORD_CHANNEL_ID']),
                        {int(v.strip()) for v in os.getenv('EXCLUDED_USER_IDS', '').split(',') if v.strip()})
         async with bot:
