@@ -102,12 +102,45 @@
     const video = document.querySelector('video.html5-main-video');
     const title = document.querySelector('ytd-watch-metadata h1 yt-formatted-string')?.textContent?.trim();
     const valid = !navigating && location.pathname === '/watch' && /^[\w-]{11}$/.test(id || '') && video && video.readyState >= 2 && title;
-    const data = valid ? {state: video.paused || video.ended ? 'paused' : 'playing', title: title.slice(0, 500), videoId: id} : {state: 'unavailable'};
+    const data = valid ? {state: video.paused || video.ended ? 'paused' : 'playing', title: title.slice(0, 500), videoId: id, volume: Math.round(video.muted ? 0 : video.volume * 100)} : {state: 'unavailable'};
     chrome.runtime.sendMessage({type: 'report', data}).catch(() => {});
     if (connected && Date.now() - received > 30000 && !disconnected) { disconnected = true; render(); }
   }
-  function onMessage(message) {
+  async function executeControl(command) {
+    if (!ownsPage() || !connected || navigating || transition || Date.now() >= command.expiresAt || command.videoId !== currentId())
+      return {ok: false, error: '현재 영상이나 연결 상태가 바뀌었어요. 다시 요청해주세요.'};
+    const video = document.querySelector('video.html5-main-video');
+    if (!video || video.readyState < 2) return {ok: false, error: '재생 가능한 영상을 찾지 못했어요.'};
+    let message;
+    if (command.action === 'pause') { pending = null; video.pause(); message = '일시정지했어요.'; }
+    else if (command.action === 'play') { pending = null; await video.play(); message = '재생했어요.'; }
+    else if (['previous', 'next'].includes(command.action)) {
+      if (!active() || disconnected || Date.now() - received > 30000) return {ok: false, error: '최신 재생목록을 확인하지 못했어요.'};
+      const item = command.action === 'next' ? queue.next() : queue.previous();
+      if (!item) return {ok: false, error: command.action === 'next' ? '다음 곡이 없어요.' : '이전 곡이 없어요.'};
+      pending = null; saveCursor();
+      // Acknowledge the navigation request before this document is unloaded.
+      setTimeout(() => { if (ownsPage()) navigate(item); }, 150);
+      return {ok: true, message: command.action === 'next' ? '다음 곡 재생을 요청했어요.' : '이전 곡 재생을 요청했어요.'};
+    } else if (['volume', 'volume_up', 'volume_down'].includes(command.action)) {
+      const current = video.muted ? 0 : Math.round(video.volume * 100);
+      const value = command.action === 'volume' ? command.value : current + (command.action === 'volume_up' ? 10 : -10);
+      if (!Number.isInteger(value)) return {ok: false, error: '음량은 0~100 사이로 입력해주세요.'};
+      video.volume = Math.max(0, Math.min(100, value)) / 100;
+      video.muted = video.volume === 0;
+      message = `유튜브 음량을 ${Math.round(video.volume * 100)}%로 설정했어요.`;
+    } else return {ok: false, error: '지원하지 않는 조작이에요.'};
+    report();
+    return {ok: true, message, playback: {state: video.paused || video.ended ? 'paused' : 'playing',
+      videoId: currentId(), volume: Math.round(video.muted ? 0 : video.volume * 100),
+      title: document.querySelector('ytd-watch-metadata h1 yt-formatted-string')?.textContent?.trim()?.slice(0, 500) || '현재 영상'}};
+  }
+  function onMessage(message, sender, respond) {
     if (!ownsPage()) return;
+    if (message.type === 'control') {
+      executeControl(message.command).then(respond).catch(() => respond({ok: false, error: '브라우저에서 재생 조작을 적용하지 못했어요.'}));
+      return true;
+    }
     if (message.type === 'reportNow') report();
     if (message.type === 'disconnectQueue') { saveCursor(); connected = false; snapshot = null; pending = null; restore(); }
     if (message.type === 'queueSnapshot' && message.data && Array.isArray(message.data.items)) {
@@ -131,7 +164,7 @@
   chrome.runtime.onMessage.addListener(onMessage);
   listen(document, 'yt-navigate-start', () => { navigating = true; pending = null; report(); });
   listen(document, 'yt-navigate-finish', () => { navigating = false; transition = false; if (snapshot) queue.update(snapshot, currentId()); render(); report(); });
-  for (const event of ['play', 'pause', 'loadeddata', 'emptied']) listen(document, event, () => {
+  for (const event of ['play', 'pause', 'volumechange', 'loadeddata', 'emptied']) listen(document, event, () => {
     if (pending?.auto && !document.querySelector('video.html5-main-video')?.ended) { pending = null; saveCursor(); }
     report();
   }, true);

@@ -44,6 +44,36 @@ async function connectionStatus(activeTabId) {
     title: state.videoTitle || tab.title?.replace(/ - YouTube$/, '') || '유튜브 탭',
     videoState: state.videoState};
 }
+let controlFlight = null;
+async function pollControl(tabId) {
+  if (controlFlight) return controlFlight;
+  controlFlight = (async () => {
+    const selected = await chrome.storage.session.get(['tabId', 'connectionId']);
+    if (selected.tabId !== tabId || !selected.connectionId) return;
+    const headers = {Authorization: 'Bearer ' + DISCOJ_TOKEN};
+    const response = await fetch('http://127.0.0.1:18766/control?session=' + encodeURIComponent(selected.connectionId),
+      {headers, cache: 'no-store', signal: AbortSignal.timeout(4000)});
+    if (response.status === 204) return;
+    if (!response.ok) throw new Error('조작 연결 실패');
+    const command = await response.json();
+    let result;
+    try {
+      const latest = await chrome.storage.session.get(['tabId', 'connectionId']);
+      if (latest.tabId !== tabId || latest.connectionId !== command.session || Date.now() >= command.expiresAt)
+        throw new Error('재생 탭 연결이 변경됐어요. 다시 요청해주세요.');
+      if (['previous', 'next'].includes(command.action)) await syncQueue(tabId, true);
+      const afterSync = await chrome.storage.session.get(['tabId', 'connectionId']);
+      if (afterSync.tabId !== tabId || afterSync.connectionId !== command.session) throw new Error('재생 탭 연결이 변경됐어요.');
+      result = await chrome.tabs.sendMessage(tabId, {type: 'control', command});
+      if (!result || typeof result.ok !== 'boolean') throw new Error('재생 탭의 응답을 확인하지 못했어요.');
+      if (result.ok && result.playback) await queued({...result.playback, session: command.session});
+    } catch (error) { result = {ok: false, error: error.message}; }
+    await fetch('http://127.0.0.1:18766/control/ack', {method: 'POST',
+      headers: {...headers, 'Content-Type': 'application/json'},
+      body: JSON.stringify({id: command.id, session: command.session, result}), signal: AbortSignal.timeout(4000)});
+  })();
+  try { await controlFlight; } finally { controlFlight = null; }
+}
 function queued(data) {
   chain = chain.catch(() => {}).then(() => send(data));
   return chain;
@@ -57,7 +87,9 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
       const {tabId} = await chrome.storage.session.get('tabId');
       if (sender.tab?.id !== tabId || sender.frameId !== 0) return;
       await chrome.storage.session.set({videoTitle: message.data.title || '', videoState: message.data.state});
-      await queued(message.data);
+      const selected = await chrome.storage.session.get('connectionId');
+      await queued({...message.data, session: selected.connectionId});
+      await pollControl(tabId);
       await syncQueue(tabId);
     } else if (message.type === 'saveCursor' || message.type === 'syncNow') {
       const {tabId} = await chrome.storage.session.get('tabId');

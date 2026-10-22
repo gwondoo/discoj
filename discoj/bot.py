@@ -108,6 +108,105 @@ class DeleteConfirmation(discord.ui.View):
 
 
 
+class VolumeModal(discord.ui.Modal, title='유튜브 음량 설정'):
+    percent = discord.ui.TextInput(label='음량 (%)', placeholder='0~100 사이의 숫자', max_length=3)
+
+    def __init__(self, panel):
+        super().__init__()
+        self.panel = panel
+
+    async def on_submit(self, interaction):
+        value = str(self.percent.value).strip()
+        if not value.isascii() or not value.isdigit() or not 0 <= int(value) <= 100:
+            await interaction.response.send_message('음량은 0~100 사이의 정수로 입력해주세요.', ephemeral=True)
+            return
+        await self.panel.apply(interaction, 'volume', int(value))
+
+
+class ControlPanel(discord.ui.View):
+    def __init__(self, playback, user_id):
+        super().__init__(timeout=300)
+        self.playback, self.user_id, self.message = playback, user_id, None
+        self.update_buttons()
+
+    def update_buttons(self):
+        available = bool(self.playback and self.playback.current())
+        for child in self.children:
+            child.disabled = not available and child is not self.refresh_status
+
+    def content(self, note=None):
+        data = self.playback.current() if self.playback else None
+        text = '🎛️ **음악 컨트롤**\n'
+        if data:
+            title = discord.utils.escape_markdown(data['title'])[:500]
+            state = '▶️ 재생 중' if data['state'] == 'playing' else '⏸️ 일시정지'
+            text += f"{title}\n{state} · 유튜브 음량 {data.get('volume', 100)}%"
+        else:
+            text += '연결된 재생 정보를 확인할 수 없어요. 확장 프로그램 연결을 확인해주세요.'
+        if note:
+            text += '\n\n' + discord.utils.escape_markdown(note)
+        return text
+
+    async def interaction_check(self, interaction):
+        if interaction.user.id == self.user_id:
+            return True
+        await interaction.response.send_message('본인의 /컨트롤 패널을 열어주세요.', ephemeral=True)
+        return False
+
+    async def apply(self, interaction, action, value=None):
+        await interaction.response.defer()
+        try:
+            result = await self.playback.control(action, value)
+            note = result['message']
+        except PlaylistError as error:
+            note = str(error)
+        self.update_buttons()
+        await interaction.edit_original_response(content=self.content(note), view=self)
+
+    @discord.ui.button(label='이전 영상 재생', emoji='⏮️', row=0)
+    async def previous_track(self, interaction, button):
+        await self.apply(interaction, 'previous')
+
+    @discord.ui.button(label='재생 시작', emoji='▶️', row=0, style=discord.ButtonStyle.success)
+    async def play(self, interaction, button):
+        await self.apply(interaction, 'play')
+
+    @discord.ui.button(label='재생 일시정지', emoji='⏸️', row=0)
+    async def pause(self, interaction, button):
+        await self.apply(interaction, 'pause')
+
+    @discord.ui.button(label='다음 영상 재생', emoji='⏭️', row=0)
+    async def next_track(self, interaction, button):
+        await self.apply(interaction, 'next')
+
+    @discord.ui.button(label='유튜브 음량 −10%', emoji='🔉', row=1)
+    async def volume_down(self, interaction, button):
+        await self.apply(interaction, 'volume_down')
+
+    @discord.ui.button(label='유튜브 음량 설정', row=1)
+    async def set_volume(self, interaction, button):
+        await interaction.response.send_modal(VolumeModal(self))
+
+    @discord.ui.button(label='유튜브 음량 +10%', emoji='🔊', row=1)
+    async def volume_up(self, interaction, button):
+        await self.apply(interaction, 'volume_up')
+
+    @discord.ui.button(label='상태 새로고침', emoji='🔄', row=2)
+    async def refresh_status(self, interaction, button):
+        self.update_buttons()
+        await interaction.response.edit_message(content=self.content(), view=self)
+
+    async def on_timeout(self):
+        for child in self.children:
+            child.disabled = True
+        if self.message:
+            try:
+                await self.message.edit(content=self.content('패널이 만료됐어요. /컨트롤을 다시 실행해주세요.'), view=self)
+            except discord.HTTPException:
+                pass
+
+
+
 class MusicBot(discord.Client):
     def __init__(self, playlist, guild_id, channel_id, excluded, playback=None):
         super().__init__(intents=discord.Intents(guilds=True), allowed_mentions=discord.AllowedMentions.none())
@@ -132,6 +231,12 @@ class MusicBot(discord.Client):
         await send('요청 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.', ephemeral=True)
 
     def register_commands(self):
+        @self.tree.command(name='컨트롤', description='이전곡·다음곡·재생·일시정지·유튜브 음량을 조절합니다')
+        async def controls(interaction: discord.Interaction):
+            await interaction.response.defer(ephemeral=True, thinking=True)
+            view = ControlPanel(self.playback, interaction.user.id)
+            view.message = await interaction.followup.send(view.content(), view=view, ephemeral=True, wait=True)
+
         @self.tree.command(name='현재곡', description='연결된 유튜브 탭의 현재 영상 제목과 링크를 확인합니다')
         async def current_video(interaction: discord.Interaction):
             data = self.playback.current() if self.playback else None

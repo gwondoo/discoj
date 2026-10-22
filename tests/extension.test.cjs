@@ -10,7 +10,7 @@ function player(current = a.video_id) {
   const video = {readyState:4, paused:false, ended:false};
   Object.defineProperty(video, 'currentTime', {get: () => 1234, set: () => {throw Error('Unexpected seek');}});
   video.play = video.pause = video.load = () => {throw Error('Unexpected playback interruption');};
-  const context = {URL, Set, Date:{now:()=>now},
+  const context = {URL, Set, setTimeout, Date:{now:()=>now},
     window:{addEventListener:(event,callback)=>events[event]=callback,removeEventListener:()=>{}},
     location:{href:`https://www.youtube.com/watch?v=${current}&list=playlist`,pathname:'/watch',assign:url=>navigation.push(url)},
     history:{state:null,replaceState:(_state,_title,url)=>{context.location.href=url;}},
@@ -26,6 +26,7 @@ function player(current = a.video_id) {
     advance:n=>now+=n, saved:()=>saved,
     snapshot:(items,options={})=>receive({type:'queueSnapshot',data:{playlistId:'playlist',revision:JSON.stringify(items),items},requestedAt:options.requestedAt??now,cursor:options.cursor}),
     end:()=>{video.ended=true;events.ended({target:video,stopImmediatePropagation:()=>{}});},
+    control:command=>new Promise(resolve=>receive({type:'control',command:{videoId:current,expiresAt:200000,...command}},null,resolve)),
     disconnect:()=>receive({type:'disconnectQueue'})};
 }
 (async()=>{
@@ -75,5 +76,22 @@ function player(current = a.video_id) {
   assert.equal(new URL(migration.context.location.href).searchParams.get('discoj_list'),'playlist');
   migration.snapshot([a,b]);assert.equal(migration.navigation.length,0);
   assert.equal(migration.video.currentTime,1234);
+  const controls=player();controls.video.volume=1;controls.video.muted=false;
+  controls.video.pause=()=>{controls.video.paused=true;};
+  controls.video.play=async()=>{controls.video.paused=false;};
+  controls.snapshot([a,b]);
+  assert.equal((await controls.control({action:'pause'})).ok,true);assert.equal(controls.video.paused,true);
+  assert.equal((await controls.control({action:'play'})).ok,true);assert.equal(controls.video.paused,false);
+  await controls.control({action:'volume_down'});assert.equal(controls.video.volume,.9);
+  await controls.control({action:'volume',value:0});assert.equal(controls.video.muted,true);
+  await controls.control({action:'volume_up'});assert.equal(controls.video.volume,.1);assert.equal(controls.video.muted,false);
+  await controls.control({action:'volume',value:100});await controls.control({action:'volume_up'});assert.equal(controls.video.volume,1);
+  assert.equal((await controls.control({action:'pause',videoId:b.video_id})).ok,false);
+  assert.equal((await controls.control({action:'pause',expiresAt:1})).ok,false);
+  controls.video.play=async()=>{throw Error('Autoplay blocked');};
+  assert.equal((await controls.control({action:'play'})).ok,false);
+  assert.equal((await controls.control({action:'previous'})).ok,false);
+  assert.equal((await controls.control({action:'next'})).ok,true);
+  await new Promise(resolve=>setTimeout(resolve,170));assert.ok(controls.navigation[0].includes(b.video_id));
   console.log('Extension playback tests passed: late addition, fresh end transition, offline/recovery, pause, cursor restore, unknown cursor, reconnect, no seek/pause/load');
 })();
