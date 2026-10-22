@@ -35,7 +35,7 @@
     if (nativePanel) { nativePanel.style.removeProperty('display'); nativePanel = null; }
   }
   function navigate(item) {
-    if (!item || transition || disconnected || Date.now() - received > 30000 || item.video_id === currentId()) return;
+    if (!item || transition || disconnected || Date.now() - received > 30000) return;
     transition = true;
     const url = new URL('https://www.youtube.com/watch');
     url.searchParams.set('v', item.video_id); url.searchParams.set('list', snapshot.playlistId);
@@ -83,7 +83,7 @@
     root.append(style);
     const heading = document.createElement('h3'); heading.textContent = `DiscoJ · ${queue.items.length}곡`; root.append(heading);
     const info = document.createElement('p');
-    info.textContent = disconnected ? '봇 연결 끊김 · 마지막 동기화 목록' : '추가·삭제 자동 반영 · 현재 영상은 유지'; root.append(info);
+    info.textContent = disconnected ? '봇 연결 끊김 · 마지막 동기화 목록' : '전체 반복 · 추가·삭제 자동 반영'; root.append(info);
     if (!queue.items.some(item => item.video_id === currentId())) {
       const removed = document.createElement('p'); removed.textContent = '현재 영상은 목록에서 제거됐어요. 재생은 끝까지 유지해요.'; root.append(removed);
     }

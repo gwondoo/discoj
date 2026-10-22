@@ -38,10 +38,23 @@ function player(current = a.video_id) {
   assert.ok(normal.navigation[0].includes(c.video_id));
   normal.snapshot([a,c]);assert.equal(normal.navigation.length,1);
 
-  const late=player();late.snapshot([a]);late.end();late.advance(5000);late.snapshot([a]);
+  const late=player();late.snapshot([a]);late.end();late.advance(5000);late.snapshot([]);
   assert.equal(late.navigation.length,0);
   late.advance(5000);late.snapshot([a,b]);assert.equal(late.navigation.length,1);
   assert.ok(late.navigation[0].includes(b.video_id));
+
+  const repeat=player(c.video_id);repeat.snapshot([a,b,c]);
+  assert.equal(repeat.navigation.length,0); // Enabling repeat does not touch the current song.
+  repeat.end();repeat.advance(1);repeat.snapshot([a,c]);
+  assert.equal(repeat.navigation.length,1);assert.ok(repeat.navigation[0].includes(a.video_id));
+  repeat.snapshot([a,c]);assert.equal(repeat.navigation.length,1);
+
+  const single=player();single.snapshot([a]);single.end();single.advance(1);single.snapshot([a]);
+  assert.equal(single.navigation.length,1);assert.ok(single.navigation[0].includes(a.video_id));
+
+  const removedLast=player(c.video_id);removedLast.snapshot([a,b,c]);removedLast.snapshot([a,b]);
+  removedLast.end();removedLast.advance(1);removedLast.snapshot([a,b]);
+  assert.equal(removedLast.navigation.length,1);assert.ok(removedLast.navigation[0].includes(a.video_id));
 
   const offline=player();offline.snapshot([a,b]);offline.advance(31000);offline.events.tick();offline.end();
   assert.equal(offline.navigation.length,0);

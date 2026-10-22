@@ -25,7 +25,10 @@
     }
     next() {
       const index = this.items.findIndex(item => item.video_id === this.current);
-      return index >= 0 ? this.items[index + 1] : this.positionKnown ? this.items.find(item => !this.before.has(item.video_id) && item.video_id !== this.current) : undefined;
+      if (index >= 0) return this.items[index + 1] || this.items[0];
+      // A removed current track keeps its cursor; wrap only after the remaining tail.
+      if (this.positionKnown) return this.items.find(item => !this.before.has(item.video_id) && item.video_id !== this.current) || this.items[0];
+      return undefined;
     }
     previous() {
       const index = this.items.findIndex(item => item.video_id === this.current);
