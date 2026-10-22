@@ -150,10 +150,10 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('`1` · Test track', args[0])
         self.assertEqual(kwargs['view'].children[-1].url, self.youtube.url)
         view = PlaylistView([{'number':i+1, 'title':'영상 제목'} for i in range(21)], self.youtube.url)
-        self.assertIn('1/3페이지', view.content())
+        self.assertIn('1/5페이지', view.content())
         interaction.response.edit_message = AsyncMock()
         await view.next_page.callback(interaction)
-        self.assertIn('`11` · 영상 제목', view.content())
+        self.assertIn('`6` · 영상 제목', view.content())
         self.assertNotIn('`1` ·', view.content())
         await bot.close()
 

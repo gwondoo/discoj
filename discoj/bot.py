@@ -10,7 +10,7 @@ class PlaylistView(discord.ui.View):
     def __init__(self, items, url):
         super().__init__(timeout=300)
         self.items, self.page = items, 0
-        self.pages = max(1, (len(items) + 9) // 10)
+        self.pages = max(1, (len(items) + 4) // 5)
         self.add_item(discord.ui.Button(label='유튜브 재생목록 보기',
                                        style=discord.ButtonStyle.link, url=url, row=1))
         self.update_buttons()
@@ -21,7 +21,7 @@ class PlaylistView(discord.ui.View):
 
     def content(self):
         lines = [f'🎵 **공용 재생목록 · {len(self.items)}곡**']
-        for item in self.items[self.page * 10:(self.page + 1) * 10]:
+        for item in self.items[self.page * 5:(self.page + 1) * 5]:
             title = discord.utils.escape_markdown(' '.join(item['title'].split()))[:140]
             lines.append(f"`{item['number']}` · {title}")
         if not self.items:
