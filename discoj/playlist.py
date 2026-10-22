@@ -43,7 +43,7 @@ class Playlist:
             if any(t['video_id'] == vid for t in items):
                 raise PlaylistError('이미 재생목록에 있는 영상이에요.')
             if len(items) >= self.limit:
-                raise PlaylistError(f'재생목록이 최대 {self.limit}곡에 도달했어요. 목록 정리 후 다시 추천해주세요.')
+                raise PlaylistError(f'재생목록이 최대 {self.limit}곡에 도달했어요. 목록 정리 후 다시 추가해주세요.')
             data = await self.youtube.insert(vid)
             self.owners[data['id']] = str(user_id)
             self.recent_additions[vid] = (data['id'], time.monotonic())
@@ -56,7 +56,7 @@ class Playlist:
     async def delete(self, item_id, user_id, admin=False):
         async with self.lock:
             if not admin and self.owners.get(item_id) != str(user_id):
-                raise PlaylistError('본인이 이번 실행 중 추천한 곡만 삭제할 수 있어요. 이전 곡은 관리자에게 요청해주세요.')
+                raise PlaylistError('본인이 이번 실행 중 추가한 곡만 삭제할 수 있어요. 이전 곡은 관리자에게 요청해주세요.')
             items = await self.youtube.items()
             if not any(t['id'] == item_id for t in items):
                 raise PlaylistError('해당 항목이 재생목록에 없어요. /목록을 다시 확인해주세요.')

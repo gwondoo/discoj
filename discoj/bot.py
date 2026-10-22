@@ -29,10 +29,10 @@ class MusicBot(discord.Client):
         await send('요청 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.', ephemeral=True)
 
     def register_commands(self):
-        @self.tree.command(name='추천', description='유튜브 영상을 공용 재생목록에 추가합니다')
-        async def recommend(interaction: discord.Interaction, 링크: str):
+        @self.tree.command(name='추가', description='유튜브 영상을 공용 재생목록에 추가합니다')
+        async def add(interaction: discord.Interaction, 링크: str):
             if interaction.user.bot or interaction.user.id in self.excluded:
-                await interaction.response.send_message('추천 대상에서 제외된 계정입니다.', ephemeral=True)
+                await interaction.response.send_message('추가 대상에서 제외된 계정입니다.', ephemeral=True)
                 return
             await interaction.response.defer(thinking=True)
             try:
@@ -57,13 +57,13 @@ class MusicBot(discord.Client):
                     link = f"[유튜브에서 보기](https://youtu.be/{item['video_id']})" if item['video_id'] else '재생 불가 영상'
                     embed.add_field(name=title, value=f"{link}\n삭제용 항목 ID: `{item['id']}`", inline=False)
                 if not items:
-                    embed.description = '아직 추천곡이 없어요. /추천으로 추가해주세요.'
+                    embed.description = '아직 추가된 곡이 없어요. /추가로 곡을 추가해주세요.'
                 embed.set_footer(text=f'{페이지}/{pages}페이지 · /목록 페이지:2 · /삭제 항목ID:…')
-                await interaction.followup.send(embed=embed)
+                await interaction.followup.send(content=f'🎵 공용 재생목록 · {len(items)}곡 · {페이지}/{pages}페이지', embed=embed, ephemeral=True)
             except PlaylistError as error:
                 await interaction.followup.send(str(error), ephemeral=True)
 
-        @self.tree.command(name='삭제', description='재생목록에서 본인 추천곡을 제거합니다. 관리자는 모든 곡을 제거할 수 있습니다')
+        @self.tree.command(name='삭제', description='재생목록에서 본인이 추가한 곡을 제거합니다. 관리자는 모든 곡을 제거할 수 있습니다')
         async def delete(interaction: discord.Interaction, 항목id: str):
             await interaction.response.defer(ephemeral=True, thinking=True)
             try:
@@ -84,8 +84,8 @@ class MusicBot(discord.Client):
         try:
             channel = self.get_channel(self.channel_id) or await self.fetch_channel(self.channel_id)
             async for message in channel.history(limit=50):
-                if message.author.id == self.user.id and message.embeds and (message.embeds[0].title or '').startswith('🎵 디스코제이 ·'):
-                    embed = discord.Embed(title='디스코제이 · 유튜브 재생목록 관리', description='/추천 · /목록 · /삭제\n음악은 유튜브 재생목록 페이지에서 재생해주세요.', color=0xb8d87a)
+                if message.author.id == self.user.id and message.embeds and (message.embeds[0].title or '').startswith(('🎵 디스코제이 ·', '디스코제이 · 유튜브 재생목록 관리')):
+                    embed = discord.Embed(title='디스코제이 · 유튜브 재생목록 관리', description='/추가 · /목록 · /삭제\n음악은 유튜브 재생목록 페이지에서 재생해주세요.', color=0xb8d87a)
                     await message.edit(embed=embed)
                     if message.pinned:
                         await message.unpin(reason='실시간 재생 표시 기능 종료')

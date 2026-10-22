@@ -113,7 +113,7 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
             await self.playlist.list()
         self.assertEqual(self.calls, [])
         bot = MusicBot(self.playlist, 1, 2, set())
-        self.assertEqual({x.name for x in bot.tree.get_commands()}, {'추천','목록','삭제'})
+        self.assertEqual({x.name for x in bot.tree.get_commands()}, {'추가','목록','삭제'})
         for command in bot.tree.get_commands():
             command.to_dict(bot.tree)
         await bot.close()

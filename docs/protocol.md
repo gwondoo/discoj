@@ -1,6 +1,6 @@
 # 외부 연동 규약
 
-입력은 Discord Gateway 슬래시 명령 3개(`/추천`, `/목록`, `/삭제`)입니다. HTTP/웹 프론트는 없습니다.
+입력은 Discord Gateway 슬래시 명령 3개(`/추가`, `/목록`, `/삭제`)입니다. HTTP/웹 프론트는 없습니다.
 모든 명령은 지정 서버·채널에서 검사하고 API 호출 전에 defer로 응답합니다.
 
 Google OAuth: `POST https://oauth2.googleapis.com/token`, grant_type=refresh_token. 반환 access_token은 만료 60초 전까지 메모리 캐시.
