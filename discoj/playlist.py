@@ -30,7 +30,6 @@ class Playlist:
             raise ValueError('MAX_PLAYLIST_SIZE must be positive')
         self.youtube, self.limit = youtube, limit
         self.lock = asyncio.Lock()
-        self.owners = {}
         self.numbers = TrackNumbers(numbers_path)
         self.recent_additions = {}  # YouTube list reads can lag behind successful writes.
 
@@ -47,7 +46,6 @@ class Playlist:
             if len(items) >= self.limit:
                 raise PlaylistError(f'재생목록이 최대 {self.limit}곡에 도달했어요. 목록 정리 후 다시 추가해주세요.')
             data = await self.youtube.insert(vid)
-            self.owners[data['id']] = str(user_id)
             self.recent_additions[vid] = (data['id'], time.monotonic())
             return self.numbers.assign(self.youtube.playlist_id, [{'id': data['id']}])[0]['number']
 
@@ -55,16 +53,13 @@ class Playlist:
         async with self.lock:
             return self.numbers.assign(self.youtube.playlist_id, await self.youtube.items())
 
-    async def delete(self, number, user_id, admin=False):
+    async def delete(self, number):
         async with self.lock:
             item_id = self.numbers.item_id(self.youtube.playlist_id, number)
             if item_id is None:
                 raise PlaylistError('이미 삭제됐거나 없는 번호예요. /목록을 확인해주세요.')
-            if not admin and self.owners.get(item_id) != str(user_id):
-                raise PlaylistError('본인이 이번 실행 중 추가한 곡만 삭제할 수 있어요. 이전 곡은 관리자에게 요청해주세요.')
             items = self.numbers.assign(self.youtube.playlist_id, await self.youtube.items())
             if not any(t['id'] == item_id for t in items):
                 raise PlaylistError('이미 삭제됐거나 없는 번호예요. /목록을 확인해주세요.')
             await self.youtube.remove(item_id)
-            self.owners.pop(item_id, None)
             self.recent_additions = {v: entry for v, entry in self.recent_additions.items() if entry[0] != item_id}

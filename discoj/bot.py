@@ -70,14 +70,17 @@ class MusicBot(discord.Client):
             if interaction.user.bot or interaction.user.id in self.excluded:
                 await interaction.response.send_message('추가 대상에서 제외된 계정입니다.', ephemeral=True)
                 return
-            await interaction.response.defer(thinking=True)
+            await interaction.response.defer(ephemeral=True, thinking=True)
             try:
                 number = await self.playlist.add(링크, interaction.user.id)
+                view = discord.ui.View()
+                view.add_item(discord.ui.Button(label='유튜브 재생목록 보기',
+                                               style=discord.ButtonStyle.link,
+                                               url=self.playlist.youtube.url))
                 await interaction.followup.send(
-                    f'✅ `{number}`번으로 재생목록에 추가했어요.\n'
-                    f'[재생목록](<{self.playlist.youtube.url}>)', suppress_embeds=True)
+                    f'✅ `{number}`번으로 재생목록에 추가했어요.', view=view, ephemeral=True)
             except PlaylistError as error:
-                await interaction.followup.send(str(error))
+                await interaction.followup.send(str(error), ephemeral=True)
 
         @self.tree.command(name='목록', description='곡 번호와 영상 제목으로 공용 재생목록을 조회합니다')
         async def listing(interaction: discord.Interaction):
@@ -89,12 +92,12 @@ class MusicBot(discord.Client):
             except PlaylistError as error:
                 await interaction.followup.send(str(error), ephemeral=True)
 
-        @self.tree.command(name='삭제', description='재생목록에서 본인이 추가한 곡을 제거합니다. 관리자는 모든 곡을 제거할 수 있습니다')
+        @self.tree.command(name='삭제', description='곡 번호로 공용 재생목록의 곡을 제거합니다. 누구나 삭제할 수 있습니다')
         @app_commands.describe(번호='/목록에 표시된 곡 번호를 입력하세요. 예: 13')
         async def delete(interaction: discord.Interaction, 번호: app_commands.Range[int, 1]):
             await interaction.response.defer(ephemeral=True, thinking=True)
             try:
-                await self.playlist.delete(번호, interaction.user.id, interaction.permissions.administrator)
+                await self.playlist.delete(번호)
                 await interaction.followup.send(f'{번호}번을 재생목록에서 제거했어요.', ephemeral=True)
             except PlaylistError as error:
                 await interaction.followup.send(str(error), ephemeral=True)

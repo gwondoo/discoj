@@ -68,9 +68,7 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
         results = await asyncio.gather(*(self.playlist.add('https://youtu.be/12345678901', i) for i in range(5)), return_exceptions=True)
         self.assertEqual(sum(type(x) is int for x in results), 1)
         self.assertEqual(self.calls.count('POST'), 1)
-        with self.assertRaises(PlaylistError):
-            await self.playlist.delete(1, 99)
-        await self.playlist.delete(1, 0)
+        await self.playlist.delete(1)
         self.assertEqual(await self.playlist.list(), [])
         self.assertEqual(self.auth_calls, 1)
 
@@ -79,9 +77,7 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(await self.playlist.list()), 90)
         with self.assertRaises(PlaylistError):
             await self.playlist.add('https://youtu.be/abcdefghijk', 1)
-        with self.assertRaises(PlaylistError):
-            await self.playlist.delete(1, 1)
-        await self.playlist.delete(1, 1, admin=True)
+        await self.playlist.delete(1)
         self.assertEqual(len(self.items), 89)
 
     async def test_quota_circuit_breaker_and_permission_error(self):
@@ -110,7 +106,6 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(PlaylistError):
             await self.youtube.insert('12345678901')
         self.assertEqual(self.calls, ['POST'])
-        self.assertEqual(self.playlist.owners, {})
 
     async def test_unconfigured_and_commands(self):
         self.youtube.credentials['refresh_token'] = ''
@@ -131,18 +126,16 @@ class PlaylistTests(unittest.IsolatedAsyncioTestCase):
             two = await playlist.add('https://youtu.be/abcdefghijk', 1)
             three = await playlist.add('https://youtu.be/ABCDEFGHIJK', 1)
             self.assertEqual((one, two, three), (1, 2, 3))
-            await playlist.delete(two, 1)
+            await playlist.delete(two)
             playlist = Playlist(self.youtube, numbers_path=path)
             four = await playlist.add('https://youtu.be/98765432109', 1)
             self.assertEqual(four, 4)
             self.assertEqual([item['number'] for item in await playlist.list()], [1, 3, 4])
             with self.assertRaises(PlaylistError):
-                await playlist.delete(two, 1, admin=True)
+                await playlist.delete(two)
             self.assertEqual(self.calls.count('DELETE'), 1)
-            # Ownership stays in memory, so old entries still require an administrator.
-            with self.assertRaises(PlaylistError):
-                await playlist.delete(one, 1)
-            await playlist.delete(one, 1, admin=True)
+            # Entries from previous runs remain deletable without any role check.
+            await playlist.delete(one)
 
     async def test_listing_is_private_with_titles_and_link(self):
         await self.playlist.add('https://youtu.be/12345678901', 1)
