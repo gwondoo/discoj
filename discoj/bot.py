@@ -37,7 +37,9 @@ class MusicBot(discord.Client):
             await interaction.response.defer(thinking=True)
             try:
                 item_id = await self.playlist.add(링크, interaction.user.id)
-                await interaction.followup.send(f'✅ 재생목록에 추가했어요.\n삭제용 항목 ID: `{item_id}`\n{self.playlist.youtube.url}')
+                await interaction.followup.send(
+                    f'✅ 재생목록에 추가했어요.\n삭제용 항목 ID: `{item_id}`\n'
+                    f'[재생목록](<{self.playlist.youtube.url}>)', suppress_embeds=True)
             except PlaylistError as error:
                 await interaction.followup.send(str(error))
 
