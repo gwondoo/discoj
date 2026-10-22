@@ -3,7 +3,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY discoj ./discoj
-COPY public ./public
 RUN useradd --create-home app
 USER app
-CMD ["uvicorn", "discoj.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD ["python", "-m", "discoj.main"]
