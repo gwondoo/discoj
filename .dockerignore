@@ -5,3 +5,6 @@
 tests
 
 data/
+
+activity-test/node_modules/
+activity-test/dist/

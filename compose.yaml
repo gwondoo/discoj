@@ -4,8 +4,10 @@ services:
     env_file: .env
     environment:
       PLAYBACK_HOST: 0.0.0.0
+      ACTIVITY_HOST: 0.0.0.0
     ports:
       - "127.0.0.1:18766:18766"
+      - "127.0.0.1:18768:18768"
     restart: unless-stopped
     init: true
     volumes:

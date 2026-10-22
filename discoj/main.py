@@ -5,6 +5,7 @@ import os
 import aiohttp
 from aiohttp import web
 from .playback import Playback
+from .activity import Activity
 from dotenv import load_dotenv
 from .bot import MusicBot
 from .playlist import Playlist
@@ -29,13 +30,22 @@ async def main():
         bot = MusicBot(playlist, int(os.environ['DISCORD_GUILD_ID']), int(os.environ['DISCORD_CHANNEL_ID']),
                        {int(v.strip()) for v in os.getenv('EXCLUDED_USER_IDS', '').split(',') if v.strip()}, playback=playback)
         runner = web.AppRunner(playback.app(), access_log=None)
+        activity_runner = None
         if playback.token:
             await runner.setup()
             await web.TCPSite(runner, os.getenv('PLAYBACK_HOST', '127.0.0.1'), 18766).start()
         try:
+            if os.getenv('DISCORD_CLIENT_SECRET'):
+                activity = Activity(playback, bot, session,
+                    os.getenv('DISCORD_CLIENT_ID', '1562673893205086288'), os.environ['DISCORD_CLIENT_SECRET'])
+                activity_runner = web.AppRunner(activity.app(), access_log=None)
+                await activity_runner.setup()
+                await web.TCPSite(activity_runner, os.getenv('ACTIVITY_HOST', '127.0.0.1'), 18768).start()
             async with bot:
                 await bot.start(token)
         finally:
+            if activity_runner:
+                await activity_runner.cleanup()
             await runner.cleanup()
 
 

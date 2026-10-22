@@ -1,0 +1,14 @@
+name: discoj-activity-test
+services:
+  activity:
+    image: nginx:alpine
+    volumes:
+      - ./activity-test/dist:/usr/share/nginx/html:ro
+      - ./activity-test/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "127.0.0.1:18767:80"
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate --url http://activity:80
+    depends_on:
+      - activity
