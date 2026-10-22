@@ -106,5 +106,20 @@ function player(current = a.video_id) {
   assert.equal((await controls.control({action:'previous'})).ok,false);
   assert.equal((await controls.control({action:'next'})).ok,true);
   await new Promise(resolve=>setTimeout(resolve,170));assert.ok(controls.navigation[0].includes(b.video_id));
+  const manual=player('ZZZZZZZZZZZ');
+  manual.context.location.href='https://www.youtube.com/watch?v=ZZZZZZZZZZZ';
+  manual.snapshot([a,b]);manual.snapshot([a,b,c]);
+  assert.equal(manual.navigation.length,0);assert.equal(manual.video.currentTime,1234);
+  assert.equal((await manual.control({action:'select',value:'deleted-id'})).ok,false);
+  assert.equal(manual.navigation.length,0);
+  assert.equal((await manual.control({action:'select',value:b.video_id})).ok,true);
+  await new Promise(resolve=>setTimeout(resolve,170));
+  assert.equal(manual.navigation.length,1);
+  const selectedUrl=new URL(manual.navigation[0]);
+  assert.equal(selectedUrl.searchParams.get('v'),b.video_id);
+  assert.equal(selectedUrl.searchParams.get('list'),'playlist');
+  // The new document will use playlist sequencing and repeat, while additions alone never navigate.
+  const picked=player(b.video_id);picked.snapshot([a,b,c]);picked.end();picked.advance(1);picked.snapshot([a,b,c]);
+  assert.ok(picked.navigation[0].includes(c.video_id));
   console.log('Extension playback tests passed: late addition, fresh end transition, offline/recovery, pause, cursor restore, unknown cursor, reconnect, no seek/pause/load');
 })();

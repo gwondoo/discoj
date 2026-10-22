@@ -119,11 +119,29 @@ class Activity:
         session = await self.authenticate(request)
         body = await self.body(request)
         action, value, command_id = body.get('action'), body.get('value'), body.get('requestId')
-        if (action not in ('previous', 'next', 'pause', 'play', 'volume') or
+        if (action not in ('previous', 'next', 'pause', 'play', 'volume', 'select') or
             not isinstance(command_id, str) or not 8 <= len(command_id) <= 100 or
             (action == 'volume' and (type(value) is not int or not 0 <= value <= 100)) or
-            (action != 'volume' and value is not None)):
+            (action == 'select' and (type(value) is not int or value < 1)) or
+            (action not in ('volume', 'select') and value is not None)):
             raise web.HTTPBadRequest(text='조작 요청을 확인해주세요.')
+        return await self.execute(session, action, value, command_id)
+
+    async def add(self, request):
+        from .playlist import video_id
+        session = await self.authenticate(request)
+        body = await self.body(request)
+        link, command_id = body.get('link'), body.get('requestId')
+        if (not isinstance(link, str) or not 1 <= len(link) <= 2048 or
+                not isinstance(command_id, str) or not 8 <= len(command_id) <= 100):
+            raise web.HTTPBadRequest(text='유튜브 영상 링크를 입력해주세요.')
+        try:
+            canonical = 'https://www.youtube.com/watch?v=' + video_id(link)
+        except PlaylistError as error:
+            raise web.HTTPBadRequest(text=str(error)) from None
+        return await self.execute(session, 'add', canonical, command_id)
+
+    async def execute(self, session, action, value, command_id):
         commands = session['commands']
         if command_id in commands:
             entry = commands[command_id]
@@ -140,8 +158,12 @@ class Activity:
             commands.pop(command_id)
             raise web.HTTPTooManyRequests(text='조작 횟수가 많아요. 화면을 다시 열어주세요.')
         try:
-            result = await self.playback.control(action, value)
-            payload = {'ok': True, 'message': result['message']}
+            if action == 'add':
+                number = await self.playback.playlist.add(value, int(session['user']))
+                payload = {'ok': True, 'number': number, 'message': f'{number}번으로 추가했어요. 현재 음악은 계속 재생됩니다.'}
+            else:
+                result = await self.playback.control(action, value)
+                payload = {'ok': True, 'message': result['message']}
         except PlaylistError as error:
             payload = {'ok': False, 'message': str(error)}
         except BaseException:
@@ -164,4 +186,5 @@ class Activity:
         app.router.add_post('/api/session', self.create_session)
         app.router.add_get('/api/state', self.state)
         app.router.add_post('/api/control', self.control)
+        app.router.add_post('/api/add', self.add)
         return app

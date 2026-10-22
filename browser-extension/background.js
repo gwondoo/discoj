@@ -61,7 +61,7 @@ async function pollControl(tabId) {
       const latest = await chrome.storage.session.get(['tabId', 'connectionId']);
       if (latest.tabId !== tabId || latest.connectionId !== command.session || Date.now() >= command.expiresAt)
         throw new Error('재생 탭 연결이 변경됐어요. 다시 요청해주세요.');
-      if (['previous', 'next'].includes(command.action)) await syncQueue(tabId, true);
+      if (['previous', 'next', 'select'].includes(command.action)) await syncQueue(tabId, true);
       const afterSync = await chrome.storage.session.get(['tabId', 'connectionId']);
       if (afterSync.tabId !== tabId || afterSync.connectionId !== command.session) throw new Error('재생 탭 연결이 변경됐어요.');
       result = await chrome.tabs.sendMessage(tabId, {type: 'control', command});

@@ -3,7 +3,7 @@ import './style.css';
 
 const $ = selector => document.querySelector(selector);
 const clientId = '1562673893205086288';
-let sdk, session, snapshot, busy = false, online = false, refreshing, timer, volumeDirty = false, pollGeneration = 0;
+let sdk, session, snapshot, busy = false, adding = false, online = false, refreshing, timer, volumeDirty = false, pollGeneration = 0;
 let queueSignature = '';
 const notice = (text, error = false) => { $('#notice').textContent = text; $('#notice').classList.toggle('error', error); };
 const timeout = (promise, ms, message) => {
@@ -26,7 +26,9 @@ async function api(path, body, authenticated = true) {
 }
 function updateControls() {
   const enabled = Boolean(session && online && snapshot?.current && !busy);
-  document.querySelectorAll('[data-action],#volume,#volume-apply').forEach(el => {el.disabled = !enabled;});
+  document.querySelectorAll('[data-action],#volume,#volume-apply,#tracks button').forEach(el => {el.disabled = !enabled;});
+  $('#add-link').disabled = $('#add-submit').disabled = !session || !online || adding;
+  $('#add-submit').textContent = adding ? '추가 중…' : '추가';
   $('#refresh').disabled = !session || busy;
   $('#connection').textContent = !session ? '인증 필요' : !online ? '연결 확인 필요' : busy ? '조작 중…' : snapshot?.current ? '연결됨' : '재생 탭 확인 필요';
   $('#connection').classList.toggle('connected', Boolean(session && online && snapshot?.current));
@@ -50,16 +52,21 @@ function render(data) {
   $('#empty').hidden = data.items.length > 0;
   $('#playlist-link').hidden = false;
   $('#playlist-link').onclick = () => openYouTube(data.playlistUrl);
-  const signature = JSON.stringify([data.items, current?.url]);
+  const signature = JSON.stringify([data.items, current?.url, current?.state]);
   if (signature !== queueSignature) {
     queueSignature = signature;
     const fragment = document.createDocumentFragment();
     for (const track of data.items) {
       const li = document.createElement('li'), number = document.createElement('span'), title = document.createElement('button');
       number.className = 'number'; number.textContent = '#' + track.number;
-      title.textContent = track.title; title.onclick = () => openYouTube(track.url);
+      const trackTitle = track.title?.trim() || '제목을 확인할 수 없는 영상';
+      title.textContent = trackTitle; title.onclick = () => control('select', track.number);
+      title.setAttribute('aria-label', trackTitle + ' 재생');
       li.append(number, title);
-      if (current?.url === track.url) {li.className = 'active'; const badge = document.createElement('span');badge.className = 'now';badge.textContent = '현재곡';li.append(badge);}
+      const badge = document.createElement('span');
+      if (current?.url === track.url) {li.className = 'active'; badge.className = 'now';badge.textContent = current.state === 'playing' ? '재생 중' : '일시정지';}
+      else {badge.className = 'play-hint';badge.textContent = '재생';}
+      li.append(badge);
       fragment.append(li);
     }
     $('#tracks').replaceChildren(fragment);
@@ -96,6 +103,19 @@ async function control(action, value) {
 document.querySelectorAll('[data-action]').forEach(button => {button.onclick = () => control(button.dataset.action);});
 $('#volume').oninput = () => {volumeDirty = true; $('#volume-value').textContent = $('#volume').value + '%';};
 $('#volume-form').onsubmit = event => {event.preventDefault(); control('volume', Number($('#volume').value));};
+$('#add-form').onsubmit = async event => {
+  event.preventDefault();
+  if (adding || !session || !online) return;
+  const link = $('#add-link').value.trim();
+  if (!link) return;
+  adding = true; updateControls(); notice('곡을 추가하고 있어요. 현재 음악은 계속 재생됩니다.');
+  try {
+    const result = await api('add', {link, requestId: crypto.randomUUID()});
+    if (result.ok) $('#add-link').value = '';
+    await refresh(); notice(result.message, !result.ok);
+  } catch (error) {notice(error.name === 'TimeoutError' ? '추가 결과를 확인하지 못했어요. 다시 추가하기 전에 목록을 확인해주세요.' : error.message, true);}
+  finally {adding = false; updateControls();}
+};
 $('#refresh').onclick = () => refresh(true);
 $('#reconnect').onclick = () => start();
 document.addEventListener('visibilitychange', () => {if (!document.hidden && session) poll();});

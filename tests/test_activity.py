@@ -135,11 +135,13 @@ class ActivityTests(unittest.IsolatedAsyncioTestCase):
         await bridge.start_server()
         extension_auth = {'Authorization': 'Bearer private-extension-token'}
         try:
-            for index, action in enumerate(('previous', 'next', 'play', 'pause', 'volume')):
+            for index, action in enumerate(('previous', 'next', 'play', 'pause', 'volume', 'select')):
                 self.now += 2
                 body = {'action': action, 'requestId': f'control-{index}'}
                 if action == 'volume':
                     body['value'] = 71
+                if action == 'select':
+                    body['value'] = 15
                 task = asyncio.create_task(self.http.post(self.server.make_url('/api/control'), headers=headers, json=body))
                 command = None
                 for _ in range(100):
@@ -150,7 +152,7 @@ class ActivityTests(unittest.IsolatedAsyncioTestCase):
                     await asyncio.sleep(.001)
                 self.assertIsNotNone(command)
                 self.assertEqual(command['action'], action)
-                self.assertEqual(command['value'], body.get('value'))
+                self.assertEqual(command['value'], '12345678901' if action == 'select' else body.get('value'))
                 async with self.http.post(bridge.make_url('/control/ack'), headers=extension_auth, json={
                     'id': command['id'], 'session': command['session'], 'result': {'ok': True, 'message': action + ' applied'}}) as response:
                     self.assertEqual(response.status, 204)
@@ -159,3 +161,38 @@ class ActivityTests(unittest.IsolatedAsyncioTestCase):
                 response.release()
         finally:
             await bridge.close()
+
+    async def test_add_is_authenticated_idempotent_and_does_not_control_playback(self):
+        self.playlist.add = AsyncMock(return_value=16)
+        self.playback.control = AsyncMock()
+        current = dict(self.playback.current())
+        body = {'link': 'https://youtu.be/abcdefghijk', 'requestId': 'add-request-1'}
+        async with self.http.post(self.server.make_url('/api/add'), json=body) as response:
+            self.assertEqual(response.status, 401)
+        headers = await self.login()
+        for _ in range(2):
+            async with self.http.post(self.server.make_url('/api/add'), headers=headers, json=body) as response:
+                payload = await response.json()
+                self.assertEqual(payload['number'], 16)
+        self.playlist.add.assert_awaited_once_with('https://www.youtube.com/watch?v=abcdefghijk', 123)
+        self.playback.control.assert_not_called()
+        self.assertEqual(self.playback.current(), current)
+        async with self.http.post(self.server.make_url('/api/add'), headers=headers,
+            json=dict(body, link='https://example.com/not-youtube')) as response:
+            self.assertEqual(response.status, 400)
+        self.now += 2
+        from discoj.youtube import PlaylistError
+        self.playlist.add.side_effect = PlaylistError('API 한도에 도달했어요.')
+        async with self.http.post(self.server.make_url('/api/add'), headers=headers,
+            json=dict(body, requestId='add-request-2')) as response:
+            self.assertFalse((await response.json())['ok'])
+        self.playback.control.assert_not_called()
+
+    async def test_select_deleted_track_never_reaches_the_browser(self):
+        headers = await self.login()
+        async with self.http.post(self.server.make_url('/api/control'), headers=headers,
+            json={'action': 'select', 'value': 999, 'requestId': 'select-missing'}) as response:
+            data = await response.json()
+            self.assertFalse(data['ok'])
+            self.assertIn('없는 곡', data['message'])
+        self.assertIsNone(self.playback.pending)

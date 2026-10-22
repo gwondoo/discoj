@@ -11,3 +11,13 @@
   li button{padding:6px 0}
   footer{padding-bottom:max(20px,env(safe-area-inset-bottom))}
 }
+#add-form{display:flex;gap:8px;margin:12px 0 2px;padding:0;border:0}
+#add-link{flex:1;min-width:0;background:#27282c;border:1px solid #414248;border-radius:4px;padding:9px 10px;color:#e7e7e9;font-size:12px}
+#add-link::placeholder{color:#85878f}
+#add-submit{flex-shrink:0;background:#343b31;border:1px solid #596452;border-radius:4px;padding:8px 12px;font-size:12px;white-space:nowrap}
+#add-submit:hover:enabled{background:#414c3c}
+li:has(button:enabled):hover{background:#292b2d}
+li .play-hint{font-size:10px;color:#919a8e;opacity:0;white-space:nowrap}
+li:hover .play-hint,li:focus-within .play-hint{opacity:1}
+li button:hover{text-decoration:none}
+@media(pointer:coarse){#add-link{font-size:16px}li .play-hint{opacity:1}}

@@ -15,7 +15,9 @@
   </div>
   <form id="volume-form"><label for="volume"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5 5 9H2v6h3l5 4ZM15 8c3 2 3 6 0 8M18 5c5 4 5 10 0 14"/></svg><span>유튜브 음량</span></label><div class="volume-row"><input id="volume" type="range" min="0" max="100" step="1" value="100" disabled><output id="volume-value" for="volume">100%</output><button id="volume-apply" disabled>적용</button></div></form>
 </section>
-<section class="queue" aria-labelledby="queue-heading"><div class="section-head"><h2 id="queue-heading">재생목록 <span id="total">0곡</span></h2><button id="refresh" class="text-button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M5 8a8 8 0 0 1 13-3l2 3M19 16a8 8 0 0 1-13 3l-2-3"/></svg>새로고침</button></div><ol id="tracks"></ol><p id="empty" hidden>아직 곡이 없어요.<br><span>/추가로 첫 곡을 넣어보세요.</span></p><button id="playlist-link" class="text-button" hidden>유튜브 재생목록 열기 ↗</button></section>
+<section class="queue" aria-labelledby="queue-heading"><div class="section-head"><h2 id="queue-heading">재생목록 <span id="total">0곡</span></h2><button id="refresh" class="text-button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M5 8a8 8 0 0 1 13-3l2 3M19 16a8 8 0 0 1-13 3l-2-3"/></svg>새로고침</button></div>
+<form id="add-form"><input id="add-link" type="url" aria-label="추가할 유튜브 영상 링크" placeholder="유튜브 링크로 곡 추가" maxlength="2048" autocomplete="off" required disabled><button id="add-submit" disabled>추가</button></form>
+<ol id="tracks"></ol><p id="empty" hidden>아직 곡이 없어요.<br><span>위에 유튜브 링크를 넣어 첫 곡을 추가하세요.</span></p><button id="playlist-link" class="text-button" hidden>유튜브 재생목록 열기 ↗</button></section>
 </div>
-<footer><span>곡 추가 <code>/추가</code> <span class="divider">·</span> 곡 삭제 <code>/삭제</code></span><span>공용 스피커에서 재생됩니다</span></footer>
+<footer><span>곡을 누르면 바로 재생 <span class="divider">·</span> 곡 삭제 <code>/삭제</code></span><span>전체 반복 · 공용 스피커</span></footer>
 </main><script type="module" src="/main.js"></script></body></html>

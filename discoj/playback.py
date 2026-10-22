@@ -67,16 +67,24 @@ class Playback:
 
     async def control(self, action, value=None):
         from .youtube import PlaylistError
-        if action not in ('previous', 'next', 'pause', 'play', 'volume_up', 'volume_down', 'volume'):
+        if action not in ('previous', 'next', 'pause', 'play', 'volume_up', 'volume_down', 'volume', 'select'):
             raise PlaylistError('지원하지 않는 조작이에요.')
         if action == 'volume' and (type(value) is not int or not 0 <= value <= 100):
             raise PlaylistError('음량은 0~100 사이로 입력해주세요.')
+        if action == 'select' and (type(value) is not int or value < 1):
+            raise PlaylistError('재생할 곡 번호를 확인해주세요.')
         if self.control_lock.locked():
             raise PlaylistError('다른 조작을 처리 중이에요. 잠시 후 다시 눌러주세요.')
         async with self.control_lock:
             current = self.current()
             if not current or not current.get('session'):
                 raise PlaylistError('연결된 재생 탭을 확인할 수 없어요. 확장 프로그램 연결을 확인해주세요.')
+            if action == 'select':
+                items = await self.playlist.browser_queue()
+                target = next((item for item in items if item['number'] == value), None)
+                if target is None:
+                    raise PlaylistError('이미 삭제됐거나 없는 곡이에요. 목록을 다시 확인해주세요.')
+                value = target['video_id']
             future = asyncio.get_running_loop().create_future()
             pending = {'id': uuid.uuid4().hex, 'action': action, 'value': value,
                        'session': current['session'], 'videoId': current['url'].split('v=')[1],

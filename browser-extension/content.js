@@ -114,14 +114,18 @@
     let message;
     if (command.action === 'pause') { pending = null; video.pause(); message = '일시정지했어요.'; }
     else if (command.action === 'play') { pending = null; await video.play(); message = '재생했어요.'; }
-    else if (['previous', 'next'].includes(command.action)) {
-      if (!active() || disconnected || Date.now() - received > 30000) return {ok: false, error: '최신 재생목록을 확인하지 못했어요.'};
-      const item = command.action === 'next' ? queue.next() : queue.previous();
+    else if (['previous', 'next', 'select'].includes(command.action)) {
+      if ((command.action !== 'select' && !active()) || !snapshot || disconnected || Date.now() - received > 30000)
+        return {ok: false, error: '최신 재생목록을 확인하지 못했어요.'};
+      const item = command.action === 'select' ? queue.items.find(item => item.video_id === command.value) :
+        command.action === 'next' ? queue.next() : queue.previous();
+      if (command.action === 'select' && !item) return {ok: false, error: '이미 삭제됐거나 없는 곡이에요. 목록을 다시 확인해주세요.'};
       if (!item) return {ok: false, error: command.action === 'next' ? '다음 곡이 없어요.' : '이전 곡이 없어요.'};
       pending = null; saveCursor();
       // Acknowledge the navigation request before this document is unloaded.
       setTimeout(() => { if (ownsPage()) navigate(item); }, 150);
-      return {ok: true, message: command.action === 'next' ? '다음 곡 재생을 요청했어요.' : '이전 곡 재생을 요청했어요.'};
+      return {ok: true, message: command.action === 'select' ? '선택한 곡 재생을 요청했어요.' :
+        command.action === 'next' ? '다음 곡 재생을 요청했어요.' : '이전 곡 재생을 요청했어요.'};
     } else if (['volume', 'volume_up', 'volume_down'].includes(command.action)) {
       const current = video.muted ? 0 : Math.round(video.volume * 100);
       const value = command.action === 'volume' ? command.value : current + (command.action === 'volume_up' ? 10 : -10);

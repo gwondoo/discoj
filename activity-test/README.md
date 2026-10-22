@@ -1,7 +1,10 @@
 # DiscoJ Discord Activity
 
 Current video, shared playlist, playback controls and YouTube volume for the
-existing Mac mini player. Adding/deleting songs remains in Discord commands.
+existing Mac mini player. Click a playlist title to play it on the selected
+Mac mini YouTube tab, including when a manual video is currently playing.
+Paste a YouTube video URL to add it without interrupting the current music.
+Deleting songs remains in the Discord command; `/추가` still works too.
 
 ## Build and run
 
