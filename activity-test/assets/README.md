@@ -27,10 +27,11 @@ Confirmed shared playback drives the stage (`src/components/DjBooth.tsx`):
 | loading | rummages | records spin backwards, LEDs blink |
 | waiting | tilts, question mark | neon dim |
 
-K.K. performs on a stone plaza on an island: sky, sea on the horizon, a rolling
-grass hill with round trees and a few flowers, all drawn in CSS. The scene
-follows the viewer's local time (morning 5–10, day 10–17, evening 17–20,
-night 20–5); each time of day grades the background with a filter and K.K. and
-the console with a multiply tint plus colored side light clipped to each layer,
-and a contact shadow sits them on the plaza. Reduced-motion preferences stop all
+K.K. is framed close on an island: sky, sea on the horizon, a rolling grass hill
+with round trees and a few flowers, all drawn in CSS. The booth is sized by the
+stage height so the console's base runs off the bottom edge. The scene
+follows the viewer's local time on office-friendly ranges (morning 5–11, day
+11–18, evening 18–21, night 21–5); each time of day grades the background with a filter and K.K. and
+the console with a multiply tint plus colored side light clipped to each layer. At night K.K. is dimmed to the
+scene's level while the neon logo and LEDs stay bright. Reduced-motion preferences stop all
 animation.

@@ -58,7 +58,7 @@ h1, h2, h3, p { margin: 0; }
 .state-pill[data-scene=loading] { color: #fff; background: var(--orange); }
 
 /* Island stage: soft sky, sea on the horizon, a rolling grass hill with round
-   trees, and a stone plaza. One light setting per time of day grades it all. */
+   trees. One light setting per time of day grades it all. */
 .booth {
   position: relative; isolation: isolate; overflow: hidden;
   height: var(--stage-h); margin: 14px 0 0; border-radius: 24px;
@@ -68,8 +68,8 @@ h1, h2, h3, p { margin: 0; }
   --sky-top: #84cdef; --sky-bottom: #d9f2f4; --sea: #6fc6e0; --sea-hi: #b8eaf2;
 }
 .booth[data-sky=morning] { --glow: .1; --tint: #fff3e2; --light-l: #ffd59a; --light-r: #fff0d0; --light: .18; --sky-top: #ffcfa3; --sky-bottom: #f8ecd6; --sea: #8fcfd9; --sea-hi: #ffe6c2; --scene: sepia(.12) brightness(1.02); }
-.booth[data-sky=evening] { --glow: .4; --tint: #ffd8bd; --light-l: #ffb27a; --light-r: #ff8f6b; --light: .26; --sky-top: #ea8f80; --sky-bottom: #ffd2a6; --sea: #e59a8c; --sea-hi: #ffd0a0; --scene: sepia(.3) saturate(1.15) brightness(.92) hue-rotate(-8deg); }
-.booth[data-sky=night] { --glow: .7; --tint: #a6aee0; --light-l: #6ff2ff; --light-r: #ff84d8; --light: .28; --sky-top: #1a2350; --sky-bottom: #3d4a84; --sea: #2a3a72; --sea-hi: #56679f; --scene: brightness(.48) saturate(.75) hue-rotate(18deg); }
+.booth[data-sky=evening] { --glow: .4; --tint: #f6cdb0; --light-l: #ffb27a; --light-r: #ff8f6b; --light: .26; --sky-top: #ea8f80; --sky-bottom: #ffd2a6; --sea: #e59a8c; --sea-hi: #ffd0a0; --scene: sepia(.3) saturate(1.15) brightness(.92) hue-rotate(-8deg); }
+.booth[data-sky=night] { --glow: .7; --tint: #767eb6; --light-l: #6ff2ff; --light-r: #ff84d8; --light: .22; --sky-top: #1a2350; --sky-bottom: #3d4a84; --sea: #2a3a72; --sea-hi: #56679f; --scene: brightness(.48) saturate(.75) hue-rotate(18deg); }
 .sky { position: absolute; inset: 0; z-index: -5; background: linear-gradient(var(--sky-top), var(--sky-bottom) 60%); transition: background .8s; }
 .sky i { position: absolute; display: block; }
 .cloud { height: 22px; border-radius: 999px; background: radial-gradient(ellipse at 50% 30%, #fff, #f1f6fa); box-shadow: 0 3px 0 #dce9f1; animation: drift 60s linear infinite alternate; }
@@ -117,20 +117,10 @@ h1, h2, h3, p { margin: 0; }
 .flower.f3 { right: 9%; bottom: 15%; --petal: #ffd84f; }
 .flower.f4 { right: 17%; bottom: 6%; --petal: #f7a8d0; scale: .9; }
 
-/* Stone plaza the console stands on */
-.plaza {
-  position: absolute; z-index: 0; left: 50%; bottom: 6%; width: min(84%, calc(var(--stage-h) * 1.12)); height: 21%; translate: -50% 0; border-radius: 50%;
-  background:
-    repeating-conic-gradient(from 8deg, #0000 0 26deg, #b9aa8a66 26deg 27deg),
-    repeating-radial-gradient(ellipse, #efe6d1 0 16px, #cdbf9f 16px 18px);
-  box-shadow: 0 6px 0 #b3a27e, 0 12px 16px -6px #0003;
-  filter: var(--scene); transition: filter .8s;
-}
-
-.rig { position: absolute; z-index: 1; left: 50%; bottom: 13%; width: min(62%, calc(var(--stage-h) * .76)); aspect-ratio: 2480 / 2320; translate: -50% 0; pointer-events: none; user-select: none; }
+/* K.K. is framed close: the console's base runs off the bottom of the stage. */
+.rig { position: absolute; z-index: 1; left: 50%; top: 13%; height: 106%; aspect-ratio: 2480 / 2320; translate: -50% 0; pointer-events: none; user-select: none; }
 .rig img, .rig i { position: absolute; display: block; }
 .rig img { inset: 0; width: 100%; height: 100%; }
-.contact { left: 4%; right: 2%; bottom: -3%; height: 18%; border-radius: 50%; background: radial-gradient(ellipse, #000a, #0000 70%); filter: blur(5px); opacity: .5; }
 .lit { position: absolute; inset: 0; isolation: isolate; }
 .lit i { inset: 0; -webkit-mask: var(--src) 0 0 / 100% 100% no-repeat; mask: var(--src) 0 0 / 100% 100% no-repeat; }
 .lit .tint { background: var(--tint); mix-blend-mode: multiply; transition: background .8s; }
@@ -159,14 +149,14 @@ h1, h2, h3, p { margin: 0; }
 .fx span, .fx i { position: absolute; display: block; opacity: 0; }
 .fx span { font-family: var(--display); }
 .note { font-size: 26px; text-shadow: 0 2px 0 #fff8; }
-.note.n1 { left: 28%; top: 30%; color: #d0573f; }
-.note.n2 { left: 68%; top: 16%; color: #3c78b3; font-size: 30px; animation-delay: -1.2s !important; }
+.note.n1 { left: 20%; top: 32%; color: #d0573f; }
+.note.n2 { left: 76%; top: 18%; color: #3c78b3; font-size: 30px; animation-delay: -1.2s !important; }
 .booth[data-scene=playing] .note { animation: rise 3.6s ease-out infinite; }
-.zzz { left: 64%; top: 26%; color: #fff; font-size: 17px; text-shadow: 0 1px 2px #3a3a6a66; }
+.zzz { left: 72%; top: 24%; color: #fff; font-size: 17px; text-shadow: 0 1px 2px #3a3a6a66; }
 .zzz.z2 { animation-delay: -1s !important; font-size: 21px; }
 .zzz.z3 { animation-delay: -2s !important; font-size: 26px; }
 .booth[data-scene=paused] .zzz { animation: snooze 3s ease-out infinite; }
-.huh { left: 66%; top: 10%; color: #fff; font-size: 38px; text-shadow: 0 2px 0 #8d795799; }
+.huh { left: 76%; top: 10%; color: #fff; font-size: 38px; text-shadow: 0 2px 0 #8d795799; }
 .booth[data-scene=waiting] .huh { opacity: 1; animation: huh 1.6s ease-in-out infinite; }
 .bubble { bottom: 16%; width: 14px; aspect-ratio: 1; border-radius: 50%; border: 2px solid #ffffffb0; background: radial-gradient(circle at 32% 30%, #fffb 0 14%, #ffffff1a 40%, #0000 62%); }
 .bubble.b1 { left: 14%; } .bubble.b2 { left: 26%; width: 20px; animation-delay: -1.7s !important; } .bubble.b3 { left: 40%; width: 10px; animation-delay: -3.1s !important; }

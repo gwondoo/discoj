@@ -3,10 +3,12 @@ import type {Scene} from '../lib/types.ts';
 
 export type Sky = 'morning' | 'day' | 'evening' | 'night';
 
+// Ranges follow the office day so the team actually sees the sky change:
+// morning until lunch, day through the afternoon, sunset after work, night late.
 export function skyAt(hour: number): Sky {
-  if (hour >= 5 && hour < 10) return 'morning';
-  if (hour >= 10 && hour < 17) return 'day';
-  if (hour >= 17 && hour < 20) return 'evening';
+  if (hour >= 5 && hour < 11) return 'morning';
+  if (hour >= 11 && hour < 18) return 'day';
+  if (hour >= 18 && hour < 21) return 'evening';
   return 'night';
 }
 
@@ -51,9 +53,7 @@ export function DjBooth({scene}: {scene: Scene}) {
         <div className="ground"/>
         <i className="flower f1"/><i className="flower f2"/><i className="flower f3"/><i className="flower f4"/>
       </div>
-      <div className="plaza" aria-hidden="true"/>
       <div className="rig" aria-hidden="true">
-        <i className="contact"/>
         <Lit src="/dj/kk-dog.webp" className="kk-dog"/>
         <Lit src="/dj/kk-console.webp" className="kk-console"/>
         <img src="/dj/kk-leds.webp" alt="" className="kk-leds" draggable={false}/>
