@@ -369,3 +369,85 @@ dialog h2 { font-family: var(--display); font-size: 18px; font-weight: 400; }
   .booth[data-scene=playing] .note, .booth[data-scene=paused] .zzz { animation: none; opacity: .9; }
   .booth[data-scene=playing] .bubble { animation: none; opacity: 0; }
 }
+
+/* Desktop Activity containers resize independently of the device's screen.
+   These rules deliberately exclude Discord mobile, including landscape phones. */
+@media (min-width: 860px) {
+  .desktop-layout #root { display: flex; flex-direction: column; height: 100dvh; padding-bottom: 16px; }
+  .desktop-layout .topbar { flex: 0 0 var(--head-h); }
+  .desktop-layout .workspace { flex: 1; min-height: 0; }
+  .desktop-layout .player, .desktop-layout .crate { min-height: 0; }
+  .desktop-layout .player > :not(.booth) { flex-shrink: 0; }
+  .desktop-layout .player .booth { flex: 1 1 0; height: auto; min-height: 80px; max-height: 400px; }
+  .desktop-layout .crate .tracks { min-height: 0; overflow: auto; }
+  .desktop-layout .player[data-attention=true] { overflow-y: auto; }
+}
+@media (min-width: 860px) and (max-height: 720px) {
+  .desktop-layout { --head-h: 44px; --pad: 14px; --gap: 16px; }
+  .desktop-layout .topbar h1 { font-size: 18px; }
+  .desktop-layout .clock { display: none; }
+  .desktop-layout .topbar { grid-template-columns: 1fr auto; }
+  .desktop-layout .player[data-attention=false] > .dialogue { display: none; }
+  .desktop-layout .now { min-height: 54px; margin: 10px 0 4px; }
+  .desktop-layout .now h3 { font-size: 17px; }
+  .desktop-layout .transport { padding: 2px 0 12px; gap: 18px; }
+  .desktop-layout .round { width: 44px; height: 44px; }
+  .desktop-layout .round.main { width: 58px; height: 58px; --icon: 24px; }
+  .desktop-layout .fader { height: 42px; }
+}
+/* Narrow desktop containers: keep controls ahead of the scrolling crate. */
+@media (max-width: 859px) {
+  .desktop-layout { --stage-h: clamp(80px, calc(100dvh - 365px), 220px); }
+  .desktop-layout .player[data-attention=false] > .dialogue { display: none; }
+}
+/* Short popups: stage left, current track and controls right; crate below. */
+@media (min-width: 561px) and (max-height: 560px) {
+  .desktop-layout { --head-h: 40px; --pad: 12px; --gap: 12px; }
+  .desktop-layout #root { display: block; height: auto; max-width: 1160px; padding: 0 14px 14px; }
+  .desktop-layout .topbar { height: 40px; grid-template-columns: 1fr auto; }
+  .desktop-layout .clock { display: none; }
+  .desktop-layout .workspace { grid-template-columns: minmax(0, 1fr); }
+  .desktop-layout .player { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "head head" "booth dialogue" "booth now" "booth transport" "booth fader"; grid-template-rows: auto auto 1fr auto auto; gap: 0 18px; }
+  .desktop-layout .player > .card-head { grid-area: head; }
+  .desktop-layout .player > .booth { grid-area: booth; height: clamp(110px, calc(100dvh - 140px), 220px); min-height: 0; margin-top: 10px; }
+  .desktop-layout .player > .dialogue { grid-area: dialogue; margin-top: 18px; padding: 10px 14px; }
+  .desktop-layout .player[data-attention=false] > .dialogue { display: none; }
+  .desktop-layout .player > .now { grid-area: now; min-height: 0; margin: 8px 0 4px; }
+  .desktop-layout .now h3 { font-size: 16px; -webkit-line-clamp: 2; }
+  .desktop-layout .player > .transport { grid-area: transport; padding: 2px 0 10px; gap: 16px; }
+  .desktop-layout .round { width: 40px; height: 40px; --icon: 18px; }
+  .desktop-layout .round.main { width: 52px; height: 52px; --icon: 23px; }
+  .desktop-layout .player > .fader { grid-area: fader; height: 38px; padding: 0 12px; }
+  .desktop-layout .crate .tracks { max-height: 280px; min-height: 0; overflow: auto; }
+}
+/* Mini / very short desktop windows: a real compact player, not a clipped page. */
+@media (max-width: 560px) and (max-height: 360px), (max-height: 280px) {
+  .desktop-layout body { min-height: 100dvh; }
+  .desktop-layout #root { height: 100dvh; max-width: none; padding: 6px; }
+  .desktop-layout .topbar, .desktop-layout .crate, .desktop-layout .toast { display: none; }
+  .desktop-layout .workspace { display: block; height: 100%; min-height: 0; }
+  .desktop-layout .player { position: relative; display: grid; height: 100%; min-height: 0; padding: 8px; border-radius: 14px; grid-template-columns: minmax(64px, 28%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 46px 30px; grid-template-areas: "booth now" "booth transport" "booth fader"; gap: 3px 12px; overflow: hidden; box-shadow: none; }
+  .desktop-layout .player > .booth { grid-area: booth; height: auto; min-height: 0; max-height: none; margin: 0 0 22px; border-radius: 10px; box-shadow: none; }
+  .desktop-layout .player > .card-head { position: absolute; bottom: 8px; left: 8px; width: calc(28% - 4px); min-height: 18px; justify-content: center; }
+  .desktop-layout .card-head h2, .desktop-layout .listeners { display: none; }
+  .desktop-layout .state-pill { height: 18px; padding: 0 6px; font-size: 10px; max-width: 100%; }
+  .desktop-layout .player > .now { grid-area: now; min-height: 0; margin: 0; text-align: left; align-items: flex-start; justify-content: center; overflow: hidden; }
+  .desktop-layout .now h3 { font-size: 13px; line-height: 1.35; -webkit-line-clamp: 2; }
+  .desktop-layout .now .text-button { display: none; }
+  .desktop-layout .player > .transport { grid-area: transport; padding: 0; gap: 14px; }
+  .desktop-layout .round { width: 32px; height: 32px; margin: 0; --icon: 16px; }
+  .desktop-layout .round.main { width: 40px; height: 40px; margin: 0; --icon: 20px; }
+  .desktop-layout .player > .fader { grid-area: fader; height: 28px; padding: 0 8px; gap: 6px; }
+  .desktop-layout .fader label { --icon: 13px; }
+  .desktop-layout .fader label span { display: none; }
+  .desktop-layout .fader input { min-width: 16px; height: 24px; }
+  .desktop-layout .fader input::-webkit-slider-runnable-track, .desktop-layout .fader input::-moz-range-track { height: 6px; }
+  .desktop-layout .fader input::-webkit-slider-thumb { width: 14px; height: 14px; margin-top: -4px; box-shadow: 0 0 0 2px var(--mint); }
+  .desktop-layout .fader input::-moz-range-thumb { width: 14px; height: 14px; box-shadow: 0 0 0 2px var(--mint); }
+  .desktop-layout .fader output { font-size: 11px; min-width: 28px; }
+  .desktop-layout .player > .dialogue { display: none; }
+  .desktop-layout .player[data-attention=true] > .dialogue { display: block; position: absolute; z-index: 5; inset: 0; width: auto; min-height: 0; margin: 0; padding: 12px; border-radius: 12px; font-size: 12px; overflow: auto; box-shadow: none; }
+  .desktop-layout .dialogue .nametag, .desktop-layout .dialogue .next { display: none; }
+  .desktop-layout .dialogue .choice { margin-top: 8px; padding: 7px 12px; font-size: 12px; }
+  .desktop-layout .scene-prop, .desktop-layout .bubble, .desktop-layout .note, .desktop-layout .zzz, .desktop-layout .huh { display: none; }
+}

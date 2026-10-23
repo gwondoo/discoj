@@ -1,5 +1,6 @@
 import {DiscordSDK} from '@discord/embedded-app-sdk';
 import {FreshRead} from './lib/fresh-read.ts';
+import {PlaybackConnection} from './lib/playback-connection.ts';
 import {PlaybackTransition, type PendingTrack} from './lib/playback-transition.ts';
 import {playbackScene} from './lib/playback-scene.ts';
 import type {Current, Scene, Snapshot, Track} from './lib/types.ts';
@@ -68,6 +69,8 @@ export class Discoj {
   private liveConnection: AbortController | null = null;
   private lastPlaybackAt = -1;
   private lastLiveAt = 0;
+  private connectionHealth = new PlaybackConnection();
+  private healthTimer?: ReturnType<typeof setTimeout>;
   private transition = new PlaybackTransition();
   private stateRead = new FreshRead(() => this.api<Snapshot>(Date.now() - this.lastLiveAt < 25000 ? 'state?queueOnly=1' : 'state'));
   private listeners = new Set<() => void>();
@@ -119,8 +122,8 @@ export class Discoj {
     let data;
     try { data = await response.json(); } catch { throw new Error('서버에 연결하지 못했어요. 잠시 후 다시 시도해주세요.'); }
     if (!response.ok) {
-      if (response.status === 401 && authenticated) { this.session = null; this.needsReconnect = true; }
-      throw new Error(data.message || '요청을 처리하지 못했어요.');
+      if ([401, 403].includes(response.status) && authenticated) this.invalidateConnection();
+      throw Object.assign(new Error(data.message || '요청을 처리하지 못했어요.'), {status: response.status});
     }
     return data as T;
   }
@@ -144,17 +147,35 @@ export class Discoj {
     this.emit();
   }
 
+  private invalidateConnection() {
+    this.session = null; this.needsReconnect = true;
+    ++this.liveGeneration; this.liveConnection?.abort(); this.lastLiveAt = 0;
+    this.connectionHealth.reset(); clearTimeout(this.healthTimer);
+    this.online = false; this.emit();
+  }
+
+  private confirmConnection() {
+    this.connectionHealth.received(); this.online = true;
+    clearTimeout(this.healthTimer);
+    this.healthTimer = setTimeout(() => {
+      if (!this.connectionHealth.healthy) { this.online = false; this.emit(); }
+    }, this.connectionHealth.grace);
+  }
+
   private async refresh(manual = false, force = false) {
     if (!this.session) return;
     try {
       const data = await this.stateRead.run(manual || force);
-      this.online = true;
+      if (data.observedAt !== undefined) this.confirmConnection();
+      else this.online = Boolean(this.session && this.connectionHealth.healthy);
       this.render({...this.snapshot, ...data} as Snapshot);
       if (manual) this.setNotice('');
     } catch (error) {
-      this.online = false; this.transition.clear();
+      this.online = Boolean(this.session && this.connectionHealth.healthy);
+      if (!this.online) this.transition.clear();
       if (this.snapshot) this.render(this.snapshot);
-      this.setNotice((error as Error).message, true);
+      // A queue failure must not mark a healthy shared player as disconnected.
+      if (manual || !this.online) this.setNotice((error as Error).message, true);
     }
   }
 
@@ -176,6 +197,11 @@ export class Discoj {
         const response = await fetch('/api/playback-events', {
           headers: {Authorization: 'Bearer ' + this.session}, cache: 'no-store', signal: controller.signal,
         });
+        if ([401, 403].includes(response.status)) {
+          this.invalidateConnection();
+          this.setNotice('인증 또는 채널 권한을 다시 확인해주세요.', true);
+          return;
+        }
         if (!response.ok || !response.body) throw new Error('재생 상태 연결을 확인해주세요.');
         const reader = response.body.getReader(), decoder = new TextDecoder();
         let buffer = '';
@@ -189,7 +215,7 @@ export class Discoj {
             if (generation === this.liveGeneration) {
               this.lastLiveAt = Date.now(); watch();
               if (this.snapshot) {
-                this.online = true;
+                this.confirmConnection();
                 if (update.heartbeat) this.emit();
                 else this.render({...this.snapshot, ...update});
               }
@@ -198,7 +224,9 @@ export class Discoj {
         }
       } catch {
         if (generation === this.liveGeneration && this.snapshot) {
-          this.lastLiveAt = 0; this.online = false; this.render(this.snapshot);
+          this.lastLiveAt = 0;
+          this.online = Boolean(this.session && this.connectionHealth.healthy);
+          this.render(this.snapshot);
           await new Promise(resolve => setTimeout(resolve, 3000));
         }
       } finally { clearTimeout(watchdog); }
@@ -298,6 +326,7 @@ export class Discoj {
 
   start = async () => {
     this.transition.clear(); this.loading = null;
+    this.connectionHealth.reset(); clearTimeout(this.healthTimer);
     ++this.liveGeneration; this.liveConnection?.abort(); this.lastPlaybackAt = -1; this.lastLiveAt = 0;
     ++this.pollGeneration; clearTimeout(this.timer); this.session = null; this.online = false;
     this.needsReconnect = false;

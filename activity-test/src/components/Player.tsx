@@ -31,7 +31,7 @@ export function Player({view, app}: {view: View, app: Discoj}) {
   const commit = () => { clearTimeout(commitTimer.current); void app.commitVolume(); };
 
   return (
-    <section className="card player" aria-labelledby="now-heading">
+    <section className="card player" aria-labelledby="now-heading" data-attention={notice.error || view.needsReconnect || !view.authenticated}>
       <div className="card-head">
         <h2 id="now-heading"><Icon name="disc"/>{current?.state === 'paused' ? '일시정지한 곡' : '지금 듣는 곡'}</h2>
         <div className="pills">

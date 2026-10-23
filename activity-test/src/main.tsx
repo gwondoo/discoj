@@ -5,6 +5,11 @@ import {App} from './App.tsx';
 import '@fontsource/jua';
 import '@fontsource/gowun-dodum';
 import './styles.css';
+import {desktopLayout} from './lib/layout-client.ts';
+
+document.documentElement.classList.toggle('desktop-layout', desktopLayout(
+  new URLSearchParams(location.search).get('platform'), matchMedia('(pointer: coarse)').matches,
+));
 
 const app = new Discoj();
 createRoot(document.getElementById('root')!).render(<StrictMode><App app={app}/></StrictMode>);

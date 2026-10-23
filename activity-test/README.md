@@ -75,3 +75,31 @@ controls the Mac mini player; the phone does not need the browser extension.
 Touch devices use larger buttons/slider hit areas and safe-area padding.
 Unverified Activity tester/developer access restrictions still apply.
 Real iOS/Android launch and consent need checking on a physical phone.
+
+## Desktop Activity sizes
+
+Discord's `platform=desktop` enables desktop-only responsive layouts. Mobile
+keeps its existing styles; a coarse-pointer fallback is used only when the
+platform query is absent (for standalone previews).
+
+- Expanded: player and crate fit the window; the crate scrolls within its card.
+- Chat alongside Activity: the stage shrinks with the available height; routine
+  dialogue is hidden so track controls and volume stay visible.
+- Short popup: stage left, track and controls right, crate below.
+- Mini: compact stage, current title, previous/play-pause/next and volume. The
+  crate and topbar are hidden; errors and reauthentication remain accessible.
+
+Verified preview sizes: 1280×800, 1000×600, 1000×480, 760×430, 600×360,
+500×500, 320×180 and 320×160. Mobile 390×844 retains the previous positions.
+Actual Discord chat-alongside and mini containers were also checked after build.
+
+Playback connectivity has a 30-second freshness window. Confirmed full-state
+responses and stream messages/heartbeats renew it; queue-only responses do not.
+A single failed read or stream reconnect preserves recently verified playback,
+while stale playback disables controls. Authentication/permission failures bypass
+the grace period and require reconnecting immediately.
+
+```sh
+node tests/activity-connection.test.mjs
+node tests/activity-connection-integration.test.mjs
+```
