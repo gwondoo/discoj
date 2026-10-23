@@ -33,7 +33,7 @@ export function Player({view, app}: {view: View, app: Discoj}) {
   return (
     <section className="card player" aria-labelledby="now-heading">
       <div className="card-head">
-        <h2 id="now-heading"><Icon name="radio"/>{current?.state === 'paused' ? '일시정지한 곡' : '지금 듣는 곡'}</h2>
+        <h2 id="now-heading"><Icon name="disc"/>{current?.state === 'paused' ? '일시정지한 곡' : '지금 듣는 곡'}</h2>
         <div className="pills">
           {view.crowd.length > 0 && <span className="listeners"><Icon name="headphones"/>{view.crowd.length}명</span>}
           <span className="state-pill" data-scene={scene}>{offline ? '상태 확인 필요' : stateLabels[scene]}</span>

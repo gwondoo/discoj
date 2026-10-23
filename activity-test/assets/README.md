@@ -27,8 +27,13 @@ Confirmed shared playback drives the stage (`src/components/DjBooth.tsx`):
 | loading | rummages | records spin backwards, LEDs blink |
 | waiting | tilts, question mark | neon dim |
 
-K.K. is framed close on an island: sky, sea on the horizon, a rolling grass hill
-with round trees and a few flowers, all drawn in CSS. The booth is sized by the
+K.K. is framed close on an island: a CSS sky, sea and rolling grass hill, dressed
+with official New Horizons icons from Nookipedia (hardwood trees, azalea and
+hibiscus bushes, cosmos, windflowers, tulips, pansies, a streetlamp and a garden
+lantern). Originals live in `source/scene/`;
+[dj/build-scene.py](dj/build-scene.py) trims them into `../public/scene/`. Props
+are sized in stage-height units (`cqh`) and keep to the horizon and bottom
+corners, which the console doesn't cover. The lamps glow at sunset and night. The booth is sized by the
 stage height so the console's base runs off the bottom edge. The scene
 follows the viewer's local time on office-friendly ranges (morning 5–11, day
 11–18, evening 18–21, night 21–5); each time of day grades the background with a filter and K.K. and

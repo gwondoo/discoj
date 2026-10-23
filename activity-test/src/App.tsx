@@ -45,7 +45,7 @@ export function App({app}: {app: Discoj}) {
       </header>
       {view.notice.temporary && view.notice.text && (
         <div className="toast" role="status" key={view.notice.text}>
-          <span className="toast-app"><Icon name="radio"/>K.K. 라디오</span>
+          <span className="toast-app"><Icon name="disc"/>K.K. 라디오</span>
           <p>{view.notice.text}</p>
         </div>
       )}

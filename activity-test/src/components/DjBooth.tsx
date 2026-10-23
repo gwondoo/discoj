@@ -34,9 +34,9 @@ function Lit({src, className}: {src: string, className: string}) {
   );
 }
 
-// A small round island tree: soft canopy blobs over a short trunk.
-function Tree({className}: {className: string}) {
-  return <i className={'tree ' + className}><b/><b/><b/></i>;
+// Official New Horizons scenery icons, trimmed to their pixels (see assets/dj/build-scene.py).
+function Prop({name, className = name}: {name: string, className?: string}) {
+  return <img className={'prop ' + className} src={`/scene/${name}.webp`} alt="" draggable={false}/>;
 }
 
 export function DjBooth({scene}: {scene: Scene}) {
@@ -49,10 +49,13 @@ export function DjBooth({scene}: {scene: Scene}) {
       </div>
       <div className="sea" aria-hidden="true"/>
       <div className="island" aria-hidden="true">
-        <Tree className="t1"/><Tree className="t2"/><Tree className="t3"/>
+        <Prop name="hardwood-tree" className="hardwood-tree near"/><Prop name="hardwood-tree"/><Prop name="hardwood-tree" className="hardwood-tree far"/>
         <div className="ground"/>
-        <i className="flower f1"/><i className="flower f2"/><i className="flower f3"/><i className="flower f4"/>
+        <Prop name="streetlamp"/><Prop name="garden-lantern"/>
+        <Prop name="azalea-bush"/><Prop name="hibiscus-bush"/>
+        <Prop name="cosmos"/><Prop name="windflowers"/><Prop name="tulips"/><Prop name="pansies"/>
       </div>
+      <div className="glows" aria-hidden="true"><i className="glow streetlamp"/><i className="glow garden-lantern"/></div>
       <div className="rig" aria-hidden="true">
         <Lit src="/dj/kk-dog.webp" className="kk-dog"/>
         <Lit src="/dj/kk-console.webp" className="kk-console"/>
