@@ -1,6 +1,7 @@
 """Split assets/source/kk-dj.webp into the booth layers in public/dj/.
 
-All layers keep the source's 1000x934 canvas so they stack without offsets.
+The source is Nookipedia's 2480x2320 "K.K. Slider DJ NL" render. It is scaled to
+WIDTH and every layer shares that canvas, so they stack without offsets.
 
   kk-dog.webp      K.K. above the console's back edge, with the body extended
                    downward so it never shows a gap while bobbing behind it
@@ -19,6 +20,10 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / 'assets/source/kk-dj.webp'
 OUT = ROOT / 'public/dj'
 
+WIDTH = 1400
+# Measurements below are in a 1000x934 reference frame and scale to WIDTH.
+REF = (1000, 934)
+
 # Console back edge (first console row) where K.K. stands behind it, measured per column.
 EDGE = [(340, 401), (360, 414), (380, 415), (400, 412), (420, 412), (440, 414), (460, 416),
         (480, 419), (500, 428), (520, 431), (540, 434), (560, 436), (580, 439), (600, 442),
@@ -29,12 +34,18 @@ LEDS = (430, 425, 700, 500)
 LOGO = (230, 530, 540, 830)
 
 
-def edge(x):
+def edge(x, kx, ky):
+    x /= kx
     if x < EDGE[0][0] or x > EDGE[-1][0]:
         return None
     for (x0, y0), (x1, y1) in zip(EDGE, EDGE[1:]):
         if x0 <= x <= x1:
-            return round(y0 + (y1 - y0) * (x - x0) / (x1 - x0))
+            return round((y0 + (y1 - y0) * (x - x0) / (x1 - x0)) * ky)
+
+
+def scale_box(box, kx, ky):
+    x0, y0, x1, y1 = box
+    return round(x0 * kx), round(y0 * ky), round(x1 * kx), round(y1 * ky)
 
 
 def is_led(r, g, b, loose=False):
@@ -45,7 +56,10 @@ def is_led(r, g, b, loose=False):
 
 def main():
     src = Image.open(SOURCE).convert('RGBA')
+    src = src.resize((WIDTH, round(WIDTH * src.height / src.width)), Image.LANCZOS)
     w, h = src.size
+    kx, ky = w / REF[0], h / REF[1]
+    lip, probe, seam = round(8 * ky), round(10 * ky), round(3 * ky)
     px = src.load()
     dog = Image.new('RGBA', src.size)
     console = src.copy()
@@ -54,24 +68,24 @@ def main():
     dp, cp, lp, gp = dog.load(), console.load(), leds.load(), logo.load()
 
     for x in range(w):
-        cut = edge(x)
+        cut = edge(x, kx, ky)
         if cut is None:
             continue
         for y in range(cut):
             # Near the edge, only pixels hanging from fur above belong to K.K.; the
             # console's bright back lip (with only background above it) stays put.
-            if y >= cut - 8:
-                r, g, b, a = px[x, y - 10]
+            if y >= cut - lip:
+                r, g, b, a = px[x, y - probe]
                 if a < 250 or (r + g + b) / 3 < 150:
                     continue
             dp[x, y] = px[x, y]
             cp[x, y] = (0, 0, 0, 0)
         # Extend the torso: repeat a row just above the edge into the hidden area.
-        if BODY[0] <= x <= BODY[1] and px[x, cut - 3][3] > 200:
-            for y in range(cut, min(h, cut + SKIRT)):
-                dp[x, y] = px[x, cut - 3]
+        if BODY[0] * kx <= x <= BODY[1] * kx and px[x, cut - seam][3] > 200:
+            for y in range(cut, min(h, cut + round(SKIRT * ky))):
+                dp[x, y] = px[x, cut - seam]
 
-    x0, y0, x1, y1 = LEDS
+    x0, y0, x1, y1 = scale_box(LEDS, kx, ky)
     for y in range(y0, y1):
         for x in range(x0, x1):
             r, g, b, a = px[x, y]
@@ -80,7 +94,7 @@ def main():
                 grey = int((r + g + b) / 3 * .35)
                 cp[x, y] = (grey, grey, grey + 6, a)
 
-    x0, y0, x1, y1 = LOGO
+    x0, y0, x1, y1 = scale_box(LOGO, kx, ky)
     for y in range(y0, y1):
         for x in range(x0, x1):
             r, g, b, a = px[x, y]

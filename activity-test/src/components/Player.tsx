@@ -39,7 +39,7 @@ export function Player({view, app}: {view: View, app: Discoj}) {
           <span className="state-pill" data-scene={scene}>{offline ? '상태 확인 필요' : stateLabels[scene]}</span>
         </div>
       </div>
-      <DjBooth scene={scene} crowd={view.crowd}/>
+      <DjBooth scene={scene}/>
       <Dialogue speaker="K.K." text={line} error={notice.error && Boolean(spoken)}>
         {view.needsReconnect && <button className="choice" onClick={app.start}>다시 연결할게!</button>}
       </Dialogue>

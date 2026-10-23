@@ -1,9 +1,11 @@
 # DJ K.K. stage
 
-The booth uses an Animal Crossing render of DJ K.K. (`source/kk-dj.webp`,
-1000×934 with transparency) for this internal Activity only. Don't publish it
-outside the team. [dj/build-layers.py](dj/build-layers.py) splits it into the
-layers in `../public/dj/`, all on the same canvas so they stack without offsets:
+The booth uses the official Animal Crossing render of DJ K.K. ("K.K. Slider DJ
+NL", 2480×2320 with transparency, from Nookipedia), stored losslessly as
+`source/kk-dj.webp`, for this internal Activity only. Don't publish it outside
+the team. [dj/build-layers.py](dj/build-layers.py) scales it to 1400px wide and
+splits it into the layers in `../public/dj/`, all on the same canvas so they
+stack without offsets:
 
 | Layer | Role |
 | --- | --- |
@@ -20,13 +22,15 @@ Confirmed shared playback drives the stage (`src/components/DjBooth.tsx`):
 
 | Scene | K.K. | Stage |
 | --- | --- | --- |
-| playing | grooves on the beat | LEDs and neon on, records spin, beams sweep, bunting flutters, bubbles, crowd waves glowsticks |
-| paused | slumps and dozes, Zzz | neon dim, lights still |
+| playing | grooves on the beat | LEDs and neon logo on, records spin, notes and bubbles |
+| paused | slumps and dozes, Zzz | neon dim |
 | loading | rummages | records spin backwards, LEDs blink |
 | waiting | tilts, question mark | neon dim |
 
-The sky follows the viewer's local clock: morning (5–10), day (10–17), a sunset
-festival look (17–20), and a night beach party with neon beams, stars and
-fireflies (20–5). The crowd is everyone connected to the Activity instance
-(`getInstanceConnectedParticipants`); avatars fall back to initials if the
-Discord CDN image can't load. Reduced-motion preferences stop all animation.
+K.K. performs on a stone plaza on an island: sky, sea on the horizon, a rolling
+grass hill with round trees and a few flowers, all drawn in CSS. The scene
+follows the viewer's local time (morning 5–10, day 10–17, evening 17–20,
+night 20–5); each time of day grades the background with a filter and K.K. and
+the console with a multiply tint plus colored side light clipped to each layer,
+and a contact shadow sits them on the plaza. Reduced-motion preferences stop all
+animation.
