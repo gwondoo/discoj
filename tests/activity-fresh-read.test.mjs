@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {FreshRead} from '../activity-test/fresh-read.js';
+import {FreshRead} from '../activity-test/src/lib/fresh-read.ts';
 const requests = [];
 const reads = new FreshRead(() => new Promise((resolve, reject) => requests.push({resolve,reject})));
 const tick = () => new Promise(resolve => setImmediate(resolve));

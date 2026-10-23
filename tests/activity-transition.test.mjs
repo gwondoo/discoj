@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {PlaybackTransition} from '../activity-test/playback-transition.js';
+import {PlaybackTransition} from '../activity-test/src/lib/playback-transition.ts';
 let now = 100;
 const transition = new PlaybackTransition(() => now);
 const a = {url:'https://www.youtube.com/watch?v=12345678901', title:'Selected'};

@@ -1,7 +1,20 @@
-# Original DJ character
+# DJ character
 
-`../public/dj-original.jpeg` is an unchanged copy of the user-provided photograph. The image pixels, facial expression, fur texture and console are preserved. A CSS overflow window hides the upper product-description text; no generative image is used in the Activity.
+The Activity's DJ booth is built from cutouts of the original photograph
+(`../public/dj-original.jpeg`). The dog's facial expression is never changed;
+only posture differs between poses. See [dj/README.md](dj/README.md) for how
+the pose PNGs in `../public/dj/` are produced and
+[POSE_REQUEST.md](POSE_REQUEST.md) for the asset request.
 
-Only the surrounding scene and gentle dog-only motion respond to confirmed playback: warm background and floating notes while playing, a cool background and no rhythmic movement while paused. Reduced-motion preferences disable animation. No face overlays or expression changes are applied.
+Confirmed shared playback picks the pose (`src/components/DjBooth.tsx`):
 
-The original photo is displayed as two CSS-clipped layers. The console layer stays fixed; only the dog layer receives the groove animation. Both layers share the original image URL, so the photograph is downloaded once.
+| Scene | Pose | Extras |
+| --- | --- | --- |
+| playing | `groove-left` → `idle` → `groove-right` → `idle`, swapped every 340ms | bounce, floating notes, spinning records |
+| paused | `sleep` | slow breathing, Zzz |
+| loading | `dig` | wiggle, records spin backwards |
+| waiting | `confused` | question mark |
+
+`console.png` is always layered in front. The two records are CSS drawn over
+the console's red and blue platters, measured on the 1024 canvas. Reduced-motion
+preferences stop the pose swapping and all animation.

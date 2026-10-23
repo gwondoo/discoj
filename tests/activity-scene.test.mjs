@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {playbackScene} from '../activity-test/playback-scene.js';
+import {playbackScene} from '../activity-test/src/lib/playback-scene.ts';
 const playing = {state:'playing'}, paused = {state:'paused'};
 assert.equal(playbackScene({online:true,current:playing}), 'playing');
 assert.equal(playbackScene({online:true,current:paused}), 'paused');

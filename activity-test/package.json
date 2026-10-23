@@ -1,1 +1,23 @@
-{"name":"discoj-activity-test","private":true,"version":"0.1.0","type":"module","scripts":{"build":"vite build"},"dependencies":{"@discord/embedded-app-sdk":"^2.0.0"},"devDependencies":{"vite":"^6.0.0"}}
+{
+  "name": "discoj-activity-test",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@discord/embedded-app-sdk": "^2.0.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.0.0"
+  }
+}

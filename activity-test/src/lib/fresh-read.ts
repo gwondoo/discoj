@@ -1,7 +1,11 @@
 // A post-write read must start after any pre-write read has finished.
-export class FreshRead {
-  constructor(load) { this.load = load; this.pending = null; }
-  async run(force = false) {
+export class FreshRead<T> {
+  load: () => Promise<T>;
+  pending: Promise<T> | null = null;
+
+  constructor(load: () => Promise<T>) { this.load = load; }
+
+  async run(force = false): Promise<T> {
     const previous = this.pending;
     if (previous) {
       if (!force) return previous;
