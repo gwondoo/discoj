@@ -22,7 +22,7 @@ export function Crate({view, app}: {view: View, app: Discoj}) {
   return (
     <section className="card crate" aria-labelledby="crate-heading">
       <div className="card-head">
-        <h2 id="crate-heading">레코드 상자 <span className="count">{items.length}곡</span></h2>
+        <h2 id="crate-heading"><Icon name="crate"/>레코드 상자 <span className="count">{items.length}곡</span></h2>
         <button className="text-button" disabled={!view.authenticated || view.busy} onClick={app.manualRefresh}><Icon name="refresh"/>새로고침</button>
       </div>
       <form className="request" onSubmit={submit}>

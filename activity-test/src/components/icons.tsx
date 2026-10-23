@@ -9,6 +9,9 @@ const paths = {
   trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3',
   external: 'M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
   link: 'M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1',
+  radio: 'M4 9h16v11H4ZM7 9l10-5M8 13h4M8 16h4M16.5 14.5a1.5 1.5 0 1 1 0 .01',
+  leaf: 'M5 19c0-8 5-14 15-14 0 10-6 15-14 15M5 19l7-7',
+  crate: 'M3 9h18v11H3ZM3 9l2-4h14l2 4M9 13h6',
 } as const;
 
 export type IconName = keyof typeof paths;

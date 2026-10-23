@@ -2,6 +2,8 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import {Discoj} from './discoj.ts';
 import {App} from './App.tsx';
+import '@fontsource/jua';
+import '@fontsource/gowun-dodum';
 import './styles.css';
 
 const app = new Discoj();

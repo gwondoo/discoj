@@ -18,3 +18,6 @@ Confirmed shared playback picks the pose (`src/components/DjBooth.tsx`):
 `console.png` is always layered in front. The two records are CSS drawn over
 the console's red and blue platters, measured on the 1024 canvas. Reduced-motion
 preferences stop the pose swapping and all animation.
+
+The stage sky follows the viewer's local clock: morning (5–10), day (10–17),
+evening (17–20, lamp on) and night (stars, moon, fireflies).

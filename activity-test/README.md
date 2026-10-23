@@ -3,7 +3,9 @@
 A "dog DJ booth" for the existing Mac mini player: current video, shared
 playlist ("레코드 상자"), playback controls and YouTube volume. Built with
 Vite, React and TypeScript (`src/`); the photographed DJ dog reacts to the
-confirmed shared playback state (see [assets/README.md](assets/README.md)). Click a playlist title to play it on the selected
+confirmed shared playback state (see [assets/README.md](assets/README.md)).
+The look is an Animal Crossing-style island theme drawn entirely in CSS with
+bundled free fonts (Jua, Gowun Dodum); no game assets or external requests. Click a playlist title to play it on the selected
 Mac mini YouTube tab, including when a manual video is currently playing.
 Paste a YouTube video URL to add it without interrupting the current music.
 Volume applies when the fader is released.
@@ -35,7 +37,8 @@ the configured channel can use the API. See [API contract](../docs/activity-api.
 Local page: http://127.0.0.1:18767/ (Discord authentication requires Activity).
 
 For UI work without Discord, run `npm run dev` and open `/?preview`
-(also `?preview=paused`, `=loading`, `=waiting`) to render sample data.
+(also `?preview=paused`, `=loading`, `=waiting`; add `&sky=night` etc., `&toast`
+or `&error`) to render sample data.
 Preview mode exists only in the dev server and never calls the API.
 The static gateway proxies `/api/` to the separate authenticated port 18768.
 It never forwards the extension bridge or its private bearer token.

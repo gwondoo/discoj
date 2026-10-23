@@ -6,7 +6,7 @@ import type {Current, Scene, Snapshot, Track} from './lib/types.ts';
 
 const clientId = '1562673893205086288';
 
-export interface Notice { text: string; error: boolean }
+export interface Notice { text: string; error: boolean; temporary: boolean }
 
 export interface View {
   authenticated: boolean;
@@ -44,7 +44,7 @@ export class Discoj {
   private loading: PendingTrack | null = null;
   private volumeDraft: number | null = null;
   private volumeQueued = false;
-  private notice: Notice = {text: 'Discord 인증 중…', error: false};
+  private notice: Notice = {text: 'Discord 인증 중…', error: false, temporary: false};
   private deleteTarget: View['deleteTarget'] = null;
   private deleteError = '';
   private timer?: ReturnType<typeof setTimeout>;
@@ -91,7 +91,7 @@ export class Discoj {
 
   private setNotice(text: string, error = false, temporary = false) {
     clearTimeout(this.noticeTimer);
-    this.notice = {text, error};
+    this.notice = {text, error, temporary: temporary && !error};
     if (temporary && text && !error) this.noticeTimer = setTimeout(() => this.setNotice(''), 3000);
     this.emit();
   }
@@ -293,8 +293,10 @@ export class Discoj {
   };
 
   // Lets the dev preview render without Discord; never used inside the Activity.
+  previewNotice(text: string, error = false, temporary = false) { this.setNotice(text, error, temporary); }
+
   preview(snapshot: Snapshot, loading?: Track) {
-    this.session = 'preview'; this.online = true; this.notice = {text: '', error: false};
+    this.session = 'preview'; this.online = true; this.notice = {text: '', error: false, temporary: false};
     if (loading) this.transition.begin(loading, snapshot.current?.url);
     this.render(snapshot);
   }

@@ -1,6 +1,7 @@
 import {useRef} from 'react';
 import type {Discoj, View} from '../discoj.ts';
 import {DjBooth} from './DjBooth.tsx';
+import {Dialogue} from './Dialogue.tsx';
 import {Icon} from './icons.tsx';
 
 const sceneLines = {
@@ -16,7 +17,9 @@ export function Player({view, app}: {view: View, app: Discoj}) {
   const {current, loading, scene, canControl, notice} = view;
   const commitTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const offline = view.authenticated && !view.online;
-  const line = notice.text || (offline ? '서버랑 연결이 끊겼어요. 다시 연결하는 중이에요.' : view.authenticated ? sceneLines[scene] : '');
+  // Short confirmations go to the phone toast; the dialogue keeps statuses and errors.
+  const spoken = notice.temporary ? '' : notice.text;
+  const line = spoken || (offline ? '서버랑 연결이 끊겼어요. 다시 연결하는 중이에요.' : view.authenticated ? sceneLines[scene] : '');
   const title = loading ? loading.title || '선택한 곡' : current?.title || '연결된 유튜브 재생 탭이 없어요';
   const playing = current?.state === 'playing';
 
@@ -30,11 +33,13 @@ export function Player({view, app}: {view: View, app: Discoj}) {
   return (
     <section className="card player" aria-labelledby="now-heading">
       <div className="card-head">
-        <h2 id="now-heading">{current?.state === 'paused' ? '일시정지한 곡' : '지금 듣는 곡'}</h2>
+        <h2 id="now-heading"><Icon name="radio"/>{current?.state === 'paused' ? '일시정지한 곡' : '지금 듣는 곡'}</h2>
         <span className="state-pill" data-scene={scene}>{offline ? '상태 확인 필요' : stateLabels[scene]}</span>
       </div>
-      <DjBooth scene={scene} line={line} error={notice.error}
-        action={view.needsReconnect ? <button className="bubble-action" onClick={app.start}>다시 연결</button> : undefined}/>
+      <DjBooth scene={scene}/>
+      <Dialogue speaker="K.K." text={line} error={notice.error && Boolean(spoken)}>
+        {view.needsReconnect && <button className="choice" onClick={app.start}>다시 연결할게!</button>}
+      </Dialogue>
       <div className="now" aria-busy={Boolean(loading)}>
         <h3 title={title}>{title}</h3>
         {current && !loading && <button className="text-button" onClick={() => app.openYouTube(current.url)}>유튜브에서 보기 <Icon name="external"/></button>}
