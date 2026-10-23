@@ -141,6 +141,15 @@ class Activity:
             raise web.HTTPBadRequest(text=str(error)) from None
         return await self.execute(session, 'add', canonical, command_id)
 
+    async def delete(self, request):
+        session = await self.authenticate(request)
+        body = await self.body(request)
+        number, command_id = body.get('number'), body.get('requestId')
+        if (type(number) is not int or number < 1 or not isinstance(command_id, str)
+                or not 8 <= len(command_id) <= 100):
+            raise web.HTTPBadRequest(text='삭제할 곡을 확인해주세요.')
+        return await self.execute(session, 'delete', number, command_id)
+
     async def execute(self, session, action, value, command_id):
         commands = session['commands']
         if command_id in commands:
@@ -160,7 +169,10 @@ class Activity:
         try:
             if action == 'add':
                 number = await self.playback.playlist.add(value, int(session['user']))
-                payload = {'ok': True, 'number': number, 'message': f'{number}번으로 추가했어요. 현재 음악은 계속 재생됩니다.'}
+                payload = {'ok': True, 'number': number, 'message': '재생목록에 추가했어요. 현재 음악은 계속 재생됩니다.'}
+            elif action == 'delete':
+                await self.playback.playlist.delete(value)
+                payload = {'ok': True, 'message': '재생목록에서 삭제했어요.'}
             else:
                 result = await self.playback.control(action, value)
                 payload = {'ok': True, 'message': result['message']}
@@ -187,4 +199,5 @@ class Activity:
         app.router.add_get('/api/state', self.state)
         app.router.add_post('/api/control', self.control)
         app.router.add_post('/api/add', self.add)
+        app.router.add_post('/api/delete', self.delete)
         return app

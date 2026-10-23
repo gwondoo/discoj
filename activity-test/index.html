@@ -19,5 +19,10 @@
 <form id="add-form"><input id="add-link" type="url" aria-label="추가할 유튜브 영상 링크" placeholder="유튜브 링크로 곡 추가" maxlength="2048" autocomplete="off" required disabled><button id="add-submit" disabled>추가</button></form>
 <ol id="tracks"></ol><p id="empty" hidden>아직 곡이 없어요.<br><span>위에 유튜브 링크를 넣어 첫 곡을 추가하세요.</span></p><button id="playlist-link" class="text-button" hidden>유튜브 재생목록 열기 ↗</button></section>
 </div>
-<footer><span>곡을 누르면 바로 재생 <span class="divider">·</span> 곡 삭제 <code>/삭제</code></span><span>전체 반복 · 공용 스피커</span></footer>
-</main><script type="module" src="/main.js"></script></body></html>
+<footer><span>곡을 누르면 바로 재생</span><span>전체 반복 · 공용 스피커</span></footer>
+</main>
+<dialog id="delete-dialog" aria-labelledby="delete-heading" aria-describedby="delete-title delete-note">
+<h2 id="delete-heading">이 곡을 삭제할까요?</h2><p id="delete-title"></p><p id="delete-note"></p>
+<p id="delete-error" role="status" aria-live="polite"></p><div class="dialog-actions"><button id="delete-cancel" type="button" autofocus>취소</button><button id="delete-confirm" type="button">삭제</button></div>
+</dialog>
+<script type="module" src="/main.js"></script></body></html>

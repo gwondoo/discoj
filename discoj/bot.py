@@ -1,10 +1,32 @@
 import logging
 import asyncio
+import json
+import os
+from pathlib import Path
 import discord
 from discord import app_commands
 from .youtube import PlaylistError
 
 log = logging.getLogger(__name__)
+
+
+class ActivityLauncher(discord.ui.View):
+    def __init__(self, bot):
+        super().__init__(timeout=None)
+        self.bot = bot
+
+    @discord.ui.button(label='디스코제이 열기', style=discord.ButtonStyle.primary,
+                       custom_id='discoj:open-activity:v1')
+    async def launch(self, interaction, button):
+        if not await self.bot.check_channel(interaction):
+            return
+        try:
+            await interaction.response.launch_activity()
+        except discord.HTTPException:
+            log.warning('Activity launch failed')
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    'Activity를 열지 못했어요. 테스터 초대를 수락했는지 확인해주세요.', ephemeral=True)
 
 
 class PlaylistView(discord.ui.View):
@@ -217,6 +239,7 @@ class MusicBot(discord.Client):
         self.tree.interaction_check = self.check_channel
         self.tree.on_error = self.command_error
         self.register_commands()
+        self.launcher_lock = asyncio.Lock()
 
     async def check_channel(self, interaction):
         if interaction.guild_id != self.guild_id or interaction.channel_id != self.channel_id:
@@ -300,6 +323,7 @@ class MusicBot(discord.Client):
                     for item in await self.playlist.choices(current)]
 
     async def setup_hook(self):
+        self.add_view(ActivityLauncher(self))
         guild = discord.Object(id=self.guild_id)
         self.tree.copy_global_to(guild=guild)
         await self.tree.sync(guild=guild)
@@ -307,14 +331,48 @@ class MusicBot(discord.Client):
     async def on_ready(self):
         log.info('Discord bot connected')
         await self.change_presence(activity=None)
-        # Retire the old playback status, retaining the message instead of deleting history.
         try:
-            channel = self.get_channel(self.channel_id) or await self.fetch_channel(self.channel_id)
-            async for message in channel.history(limit=50):
-                if message.author.id == self.user.id and message.embeds and (message.embeds[0].title or '').startswith(('🎵 디스코제이 ·', '디스코제이 · 유튜브 재생목록 관리')):
-                    embed = discord.Embed(title='디스코제이 · 유튜브 재생목록 관리', description='/추가 · /목록 · /삭제\n음악은 유튜브 재생목록 페이지에서 재생해주세요.', color=0xb8d87a)
-                    await message.edit(embed=embed)
-                    if message.pinned:
-                        await message.unpin(reason='실시간 재생 표시 기능 종료')
+            await self.ensure_activity_launcher()
         except discord.HTTPException:
-            log.warning('기존 재생 현황 메시지를 갱신하지 못했습니다.')
+            log.warning('Activity 안내 메시지를 게시하거나 고정하지 못했습니다.')
+
+    async def ensure_activity_launcher(self):
+        async with self.launcher_lock:
+            channel = self.get_channel(self.channel_id) or await self.fetch_channel(self.channel_id)
+            state_path = Path(os.getenv('ACTIVITY_LAUNCHER_PATH', 'data/activity-launcher.json'))
+            message = None
+            if state_path.exists():
+                state = json.loads(state_path.read_text())
+                if state.get('channel_id') == self.channel_id:
+                    try:
+                        candidate = await channel.fetch_message(state['message_id'])
+                        if candidate.author.id == self.user.id:
+                            message = candidate
+                    except discord.NotFound:
+                        pass
+            if message is None:
+                async for candidate in channel.history(limit=50):
+                    if candidate.author.id != self.user.id:
+                        continue
+                    has_launcher = any(getattr(child, 'custom_id', None) == 'discoj:open-activity:v1'
+                        for row in candidate.components for child in row.children)
+                    is_old_guide = candidate.embeds and (candidate.embeds[0].title or '').startswith(
+                        ('🎵 디스코제이 ·', '디스코제이 · 유튜브 재생목록 관리'))
+                    if has_launcher or is_old_guide:
+                        message = candidate
+                        break
+            embed = discord.Embed(title='디스코제이',
+                description='공용 재생목록을 보고 음악을 조작하세요.\n곡 추가·삭제도 플레이어 안에서 할 수 있어요.',
+                color=0xb7c8b0)
+            embed.set_footer(text='음악은 사무실 공용 스피커에서 재생됩니다.')
+            view = ActivityLauncher(self)
+            if message:
+                await message.edit(content=None, embed=embed, view=view)
+            else:
+                message = await channel.send(embed=embed, view=view)
+            state_path.parent.mkdir(parents=True, exist_ok=True)
+            temporary = state_path.with_suffix('.tmp')
+            temporary.write_text(json.dumps({'channel_id': self.channel_id, 'message_id': message.id}))
+            temporary.replace(state_path)
+            if not message.pinned:
+                await message.pin(reason='디스코제이 Activity 실행 안내')

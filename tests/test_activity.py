@@ -196,3 +196,40 @@ class ActivityTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(data['ok'])
             self.assertIn('없는 곡', data['message'])
         self.assertIsNone(self.playback.pending)
+
+    async def test_delete_is_private_idempotent_and_preserves_current_playback(self):
+        self.playlist.delete = AsyncMock()
+        self.playback.control = AsyncMock()
+        before = dict(self.playback.current())
+        body = {'number': 15, 'requestId': 'delete-request-1'}
+        async with self.http.post(self.server.make_url('/api/delete'), json=body) as response:
+            self.assertEqual(response.status, 401)
+        self.playlist.delete.assert_not_called()
+        headers = await self.login()
+        for _ in range(2):
+            async with self.http.post(self.server.make_url('/api/delete'), headers=headers, json=body) as response:
+                self.assertTrue((await response.json())['ok'])
+        self.playlist.delete.assert_awaited_once_with(15)
+        self.playback.control.assert_not_called()
+        self.assertEqual(self.playback.current(), before)
+        async with self.http.post(self.server.make_url('/api/delete'), headers=headers,
+            json=dict(body, number=16)) as response:
+            self.assertEqual(response.status, 409)
+        async with self.http.post(self.server.make_url('/api/delete'), headers=headers,
+            json=dict(body, number=True)) as response:
+            self.assertEqual(response.status, 400)
+
+    async def test_delete_missing_track_and_quota_error_are_not_success(self):
+        from discoj.youtube import PlaylistError
+        headers = await self.login()
+        self.playlist.delete = AsyncMock(side_effect=PlaylistError('이미 삭제됐거나 없는 번호예요.'))
+        async with self.http.post(self.server.make_url('/api/delete'), headers=headers,
+            json={'number': 15, 'requestId': 'delete-missing'}) as response:
+            data = await response.json()
+            self.assertFalse(data['ok'])
+            self.assertIn('이미 삭제', data['message'])
+        self.now += 2
+        self.playlist.delete.side_effect = PlaylistError('API 한도에 도달했어요.')
+        async with self.http.post(self.server.make_url('/api/delete'), headers=headers,
+            json={'number': 15, 'requestId': 'delete-quota'}) as response:
+            self.assertFalse((await response.json())['ok'])

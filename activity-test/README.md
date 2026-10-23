@@ -4,7 +4,8 @@ Current video, shared playlist, playback controls and YouTube volume for the
 existing Mac mini player. Click a playlist title to play it on the selected
 Mac mini YouTube tab, including when a manual video is currently playing.
 Paste a YouTube video URL to add it without interrupting the current music.
-Deleting songs remains in the Discord command; `/추가` still works too.
+Each row has a delete button with a title confirmation and delete/cancel actions.
+Activity rows hide stable track numbers; `/추가` and `/삭제` still work too.
 
 ## Build and run
 

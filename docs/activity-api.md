@@ -54,3 +54,12 @@ Errors use JSON `{message}`: 400 invalid input, 401 expired/invalid auth,
 403 no channel access, 409 reused ID with different content, 429 excessive
 requests, 503 Discord/bot/playlist unavailable. Responses are `no-store`;
 there is no cross-origin CORS access or cookie authentication.
+
+`POST /api/delete` takes `{number, requestId}` with the same authenticated
+session. It uses the stable positive track number, never a displayed row
+position. The Activity hides numbers and shows a title confirmation dialog
+before submitting. Cancel/Escape makes no delete request. A refresh while the
+dialog is open cannot retarget it to another song. Everyone with channel access
+can delete, matching `/삭제`. The existing playlist delete path enforces quota,
+removes the item from the shared memory queue, and preserves current playback.
+Duplicate request IDs return the original result without repeating the write.

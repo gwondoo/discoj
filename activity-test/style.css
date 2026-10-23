@@ -21,3 +21,18 @@ li .play-hint{font-size:10px;color:#919a8e;opacity:0;white-space:nowrap}
 li:hover .play-hint,li:focus-within .play-hint{opacity:1}
 li button:hover{text-decoration:none}
 @media(pointer:coarse){#add-link{font-size:16px}li .play-hint{opacity:1}}
+li .track-delete{flex:0 0 auto;width:auto;padding:6px 8px;border-radius:4px;color:#8d8f96;font-size:11px}
+li .track-delete:hover:enabled{background:#403030;color:#f0b3aa}
+li .track-delete:disabled{opacity:.3}
+dialog{width:min(420px,calc(100vw - 36px));padding:24px;background:#292a2f;color:#e7e7e9;border:1px solid #484a51;border-radius:10px;box-shadow:0 16px 64px #0005}
+dialog::backdrop{background:#0009}
+dialog h2{font-size:17px;color:#f0f0f2;font-weight:600}
+#delete-title{font-size:14px;line-height:1.6;overflow-wrap:anywhere;margin:20px 0 10px}
+#delete-note{font-size:12px;color:#a5a7af;line-height:1.6}
+#delete-error{font-size:12px;color:#f1b6ac;line-height:1.6}
+#delete-error:empty{display:none}
+.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:24px}
+.dialog-actions button{padding:9px 18px;min-height:40px;border:1px solid #51535b;border-radius:5px;background:transparent;font-size:13px}
+#delete-confirm{background:#b54a40;border-color:#b54a40;color:#fff}
+#delete-confirm:hover:enabled{background:#ca5d52}
+#delete-cancel:hover:enabled{background:#393b42}
