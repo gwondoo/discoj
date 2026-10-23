@@ -4,7 +4,8 @@ A DJ K.K. festival stage for the existing Mac mini player: current video, shared
 playlist ("레코드 상자"), playback controls and YouTube volume. Built with
 Vite, React and TypeScript (`src/`); DJ K.K. and the stage react to the
 confirmed shared playback state on an island stage
-(see [assets/README.md](assets/README.md)).
+(see [assets/README.md](assets/README.md)). Planning and design rules, including the
+time-of-day ranges, are in [DESIGN.md](DESIGN.md).
 The look is an Animal Crossing-style island theme drawn entirely in CSS with
 bundled free fonts (Jua, Gowun Dodum); no game assets or external requests. Click a playlist title to play it on the selected
 Mac mini YouTube tab, including when a manual video is currently playing.
