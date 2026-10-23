@@ -12,6 +12,7 @@ const paths = {
   radio: 'M4 9h16v11H4ZM7 9l10-5M8 13h4M8 16h4M16.5 14.5a1.5 1.5 0 1 1 0 .01',
   leaf: 'M5 19c0-8 5-14 15-14 0 10-6 15-14 15M5 19l7-7',
   crate: 'M3 9h18v11H3ZM3 9l2-4h14l2 4M9 13h6',
+  headphones: 'M4 15v-3a8 8 0 0 1 16 0v3M4 15h3v5H5a1 1 0 0 1-1-1ZM20 15h-3v5h2a1 1 0 0 0 1-1Z',
 } as const;
 
 export type IconName = keyof typeof paths;

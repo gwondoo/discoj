@@ -8,6 +8,17 @@ const clientId = '1562673893205086288';
 
 export interface Notice { text: string; error: boolean; temporary: boolean }
 
+export interface Fan { id: string; name: string; avatar: string | null }
+
+interface Participant { id: string; username: string; bot: boolean; avatar?: string | null; global_name?: string | null; nickname?: string }
+
+function toFan(user: Participant): Fan {
+  const avatar = user.avatar
+    ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64`
+    : `https://cdn.discordapp.com/embed/avatars/${Number((BigInt(user.id) >> 22n) % 6n)}.png`;
+  return {id: user.id, name: user.nickname || user.global_name || user.username, avatar};
+}
+
 export interface View {
   authenticated: boolean;
   online: boolean;
@@ -27,6 +38,7 @@ export interface View {
   notice: Notice;
   deleteTarget: (Track & {requestId: string}) | null;
   deleteError: string;
+  crowd: Fan[];
 }
 
 interface ControlResult { ok: boolean; message: string }
@@ -47,6 +59,8 @@ export class Discoj {
   private notice: Notice = {text: 'Discord 인증 중…', error: false, temporary: false};
   private deleteTarget: View['deleteTarget'] = null;
   private deleteError = '';
+  private crowd: Fan[] = [];
+  private followingCrowd = false;
   private timer?: ReturnType<typeof setTimeout>;
   private noticeTimer?: ReturnType<typeof setTimeout>;
   private pollGeneration = 0;
@@ -85,7 +99,7 @@ export class Discoj {
       volume: this.volumeDraft ?? current?.volume ?? 100,
       connection: !authenticated ? '인증 필요' : !this.online ? '연결 확인 필요' : pending ? '곡 전환 중…' : this.busy ? '조작 중…' : current ? '연결됨' : '재생 탭 확인 필요',
       connected: Boolean(authenticated && this.online && (current || pending)),
-      notice: this.notice, deleteTarget: this.deleteTarget, deleteError: this.deleteError,
+      notice: this.notice, deleteTarget: this.deleteTarget, deleteError: this.deleteError, crowd: this.crowd,
     };
   }
 
@@ -266,6 +280,20 @@ export class Discoj {
     } finally { this.deleting = false; this.emit(); }
   };
 
+  // Everyone in this Activity instance shows up in the booth's crowd.
+  private async followCrowd() {
+    if (this.followingCrowd || !this.sdk) return;
+    this.followingCrowd = true;
+    const update = ({participants}: {participants: Participant[]}) => {
+      this.crowd = participants.filter(user => !user.bot).map(toFan);
+      this.emit();
+    };
+    try {
+      update(await this.sdk.commands.getInstanceConnectedParticipants());
+      await this.sdk.subscribe('ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE', update);
+    } catch { this.followingCrowd = false; }
+  }
+
   resume = () => { if (this.session && this.session !== 'preview') void this.poll(); };
 
   start = async () => {
@@ -284,6 +312,7 @@ export class Discoj {
       const data = await this.api<{session: string, accessToken: string}>('session', {code}, false);
       await timeout(this.sdk.commands.authenticate({access_token: data.accessToken}), 15000, 'Discord 인증 응답이 없어요. 다시 연결해주세요.');
       this.session = data.session; this.setNotice('');
+      void this.followCrowd();
       await this.poll();
       void this.followPlayback(this.liveGeneration);
     } catch (error) {
@@ -294,6 +323,7 @@ export class Discoj {
 
   // Lets the dev preview render without Discord; never used inside the Activity.
   previewNotice(text: string, error = false, temporary = false) { this.setNotice(text, error, temporary); }
+  previewCrowd(crowd: Fan[]) { this.crowd = crowd; this.emit(); }
 
   preview(snapshot: Snapshot, loading?: Track) {
     this.session = 'preview'; this.online = true; this.notice = {text: '', error: false, temporary: false};

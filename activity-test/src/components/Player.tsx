@@ -34,9 +34,12 @@ export function Player({view, app}: {view: View, app: Discoj}) {
     <section className="card player" aria-labelledby="now-heading">
       <div className="card-head">
         <h2 id="now-heading"><Icon name="radio"/>{current?.state === 'paused' ? '일시정지한 곡' : '지금 듣는 곡'}</h2>
-        <span className="state-pill" data-scene={scene}>{offline ? '상태 확인 필요' : stateLabels[scene]}</span>
+        <div className="pills">
+          {view.crowd.length > 0 && <span className="listeners"><Icon name="headphones"/>{view.crowd.length}명</span>}
+          <span className="state-pill" data-scene={scene}>{offline ? '상태 확인 필요' : stateLabels[scene]}</span>
+        </div>
       </div>
-      <DjBooth scene={scene}/>
+      <DjBooth scene={scene} crowd={view.crowd}/>
       <Dialogue speaker="K.K." text={line} error={notice.error && Boolean(spoken)}>
         {view.needsReconnect && <button className="choice" onClick={app.start}>다시 연결할게!</button>}
       </Dialogue>

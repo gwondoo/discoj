@@ -2,7 +2,7 @@ import type {Discoj} from './discoj.ts';
 import type {Snapshot} from './lib/types.ts';
 
 // Dev-only sample data (`npm run dev`, then open /?preview, or =paused, =loading, =waiting).
-// Add &sky=morning|day|evening|night, &toast or &error to check those looks.
+// Add &sky=morning|day|evening|night, &crowd=0..7, &toast or &error to check those looks.
 const titles = [
   "NewJeans (뉴진스) 'Supernatural' Official MV",
   'IU 아이유 - Love wins all MV',
@@ -23,6 +23,8 @@ export function showPreview(app: Discoj) {
   };
   app.preview(snapshot, mode === 'loading' ? items[4] : undefined);
   const params = new URLSearchParams(location.search);
+  const names = ['도', '민지', '하늘', 'Jun', '소라', '태오', '유나'];
+  app.previewCrowd(names.slice(0, Number(params.get('crowd') ?? 5)).map((name, index) => ({id: String(index), name, avatar: null})));
   if (params.has('toast')) app.previewNotice('신청곡 받았어요! 레코드 상자에 넣었어요.', false, true);
   if (params.has('error')) app.previewNotice('재생 탭이 응답하지 않아요. Mac mini를 확인해주세요.', true);
 }
