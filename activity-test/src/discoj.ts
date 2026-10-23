@@ -128,6 +128,8 @@ export class Discoj {
     return data as T;
   }
 
+  dismissNotice = () => { if (!this.needsReconnect) this.setNotice(''); };
+
   async openYouTube(url: string | undefined) {
     if (!url || !this.sdk) return;
     try {
@@ -257,6 +259,8 @@ export class Discoj {
   };
 
   setVolumeDraft = (volume: number) => { this.volumeDraft = volume; this.emit(); };
+
+  cancelVolumeDraft = () => { this.volumeDraft = null; this.emit(); };
 
   // Volume applies on release; a change made during another command waits for it.
   commitVolume = async () => {

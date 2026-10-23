@@ -3,6 +3,7 @@ import type {Discoj, View} from '../discoj.ts';
 import {DjBooth} from './DjBooth.tsx';
 import {Dialogue} from './Dialogue.tsx';
 import {Icon} from './icons.tsx';
+import {VolumeGesture} from '../lib/volume-gesture.ts';
 
 const sceneLines = {
   playing: '오늘의 선곡, 신나게 틀고 있어요!',
@@ -15,7 +16,9 @@ const stateLabels = {playing: '재생 중', paused: '일시정지', loading: '�
 
 export function Player({view, app}: {view: View, app: Discoj}) {
   const {current, loading, scene, canControl, notice} = view;
-  const commitTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const volumeGesture = useRef<VolumeGesture | null>(null);
+  volumeGesture.current ??= new VolumeGesture(app.setVolumeDraft, app.commitVolume, app.cancelVolumeDraft);
+  const gesture = volumeGesture.current;
   const offline = view.authenticated && !view.online;
   // Short confirmations go to the phone toast; the dialogue keeps statuses and errors.
   const spoken = notice.temporary ? '' : notice.text;
@@ -23,12 +26,6 @@ export function Player({view, app}: {view: View, app: Discoj}) {
   const title = loading ? loading.title || '선택한 곡' : current?.title || '연결된 유튜브 재생 탭이 없어요';
   const playing = current?.state === 'playing';
 
-  const draft = (value: number) => {
-    app.setVolumeDraft(value);
-    clearTimeout(commitTimer.current);
-    commitTimer.current = setTimeout(app.commitVolume, 600);
-  };
-  const commit = () => { clearTimeout(commitTimer.current); void app.commitVolume(); };
 
   return (
     <section className="card player" aria-labelledby="now-heading" data-attention={notice.error || view.needsReconnect || !view.authenticated}>
@@ -40,7 +37,8 @@ export function Player({view, app}: {view: View, app: Discoj}) {
         </div>
       </div>
       <DjBooth scene={scene}/>
-      <Dialogue speaker="K.K." text={line} error={notice.error && Boolean(spoken)}>
+      <Dialogue speaker="K.K." text={line} error={notice.error && Boolean(spoken)}
+        onDismiss={notice.error && !view.needsReconnect ? app.dismissNotice : undefined}>
         {view.needsReconnect && <button className="choice" onClick={app.start}>다시 연결할게!</button>}
       </Dialogue>
       <div className="now" aria-busy={Boolean(loading)}>
@@ -59,8 +57,13 @@ export function Player({view, app}: {view: View, app: Discoj}) {
         <input id="volume" type="range" min={0} max={100} step={1} value={view.volume}
           style={{'--fill': view.volume + '%'} as React.CSSProperties}
           disabled={!view.authenticated || !view.online || !current}
-          onChange={event => draft(Number(event.target.value))}
-          onPointerUp={commit}/>
+          onChange={event => gesture.change(Number(event.target.value))}
+          onPointerDown={event => { gesture.pointerDown(); event.currentTarget.setPointerCapture(event.pointerId); }}
+          onPointerUp={() => gesture.pointerUp()}
+          onPointerCancel={() => gesture.cancel()}
+          onLostPointerCapture={() => gesture.lostCapture()}
+          onKeyUp={event => gesture.keyUp(event.key)}
+          onBlur={() => gesture.blur()}/>
         <output htmlFor="volume">{view.volume}%</output>
       </div>
     </section>

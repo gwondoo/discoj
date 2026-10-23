@@ -4,11 +4,11 @@ import type {Scene} from '../lib/types.ts';
 export type Sky = 'morning' | 'day' | 'evening' | 'night';
 
 // Ranges follow the office day so the team actually sees the sky change:
-// morning until lunch, day through the afternoon, sunset after work, night late.
+// All four moods appear during 09:00–18:00; off-hours keep the night sky.
 export function skyAt(hour: number): Sky {
-  if (hour >= 5 && hour < 11) return 'morning';
-  if (hour >= 11 && hour < 18) return 'day';
-  if (hour >= 18 && hour < 21) return 'evening';
+  if (hour >= 9 && hour < 11) return 'morning';
+  if (hour >= 11 && hour < 14) return 'day';
+  if (hour >= 14 && hour < 16) return 'evening';
   return 'night';
 }
 

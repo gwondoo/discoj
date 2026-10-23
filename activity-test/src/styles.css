@@ -451,3 +451,10 @@ dialog h2 { font-family: var(--display); font-size: 18px; font-weight: 400; }
   .desktop-layout .dialogue .choice { margin-top: 8px; padding: 7px 12px; font-size: 12px; }
   .desktop-layout .scene-prop, .desktop-layout .bubble, .desktop-layout .note, .desktop-layout .zzz, .desktop-layout .huh { display: none; }
 }
+/* Dismiss recoverable notices without leaving the mini player. Auth errors retain reconnect. */
+.dialogue-dismiss { position: absolute; z-index: 1; top: 8px; right: 10px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; background: var(--card); font-family: var(--display); font-size: 12px; }
+.dialogue:has(.dialogue-dismiss) { padding-right: 66px; }
+@media (pointer: coarse) { .dialogue-dismiss { min-height: 40px; } }
+@media (max-width: 560px) and (max-height: 360px), (max-height: 280px) {
+  .desktop-layout .player[data-attention=true] > .dialogue:has(.dialogue-dismiss) { padding-right: 66px; }
+}

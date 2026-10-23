@@ -19,16 +19,18 @@ function useTypewriter(text: string) {
   return {shown: done ? text : chars.slice(0, count).join(''), done};
 }
 
-export function Dialogue({speaker, text, error, children}: {
+export function Dialogue({speaker, text, error, children, onDismiss}: {
   speaker: string;
   text: string;
   error?: boolean;
   children?: React.ReactNode;
+  onDismiss?: () => void;
 }) {
   const {shown, done} = useTypewriter(text);
   if (!text) return null;
   return (
     <div className={'dialogue' + (error ? ' error' : '')}>
+      {onDismiss && <button type="button" className="dialogue-dismiss" onClick={onDismiss} aria-label="오류 메시지 닫기">닫기</button>}
       <span className="nametag">{speaker}</span>
       <p role="status" aria-live="polite">
         <span className="sr-only">{text}</span>

@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {Discoj} from '../activity-test/src/discoj.ts';
+const app=new Discoj();
+app.preview({current:{title:'song',url:'https://www.youtube.com/watch?v=12345678901',state:'playing',volume:40},items:[],playlistUrl:'https://www.youtube.com/playlist?list=test'});
+app.previewNotice('temporary control error',true);
+assert.equal(app.getView().notice.error,true);
+app.dismissNotice();
+assert.equal(app.getView().notice.text,'');
+assert.equal(app.getView().canControl,true);
+app.needsReconnect=true; app.session=null;
+app.previewNotice('authentication expired',true);
+app.dismissNotice();
+assert.equal(app.getView().notice.text,'authentication expired');
+assert.equal(app.getView().needsReconnect,true);
+assert.equal(app.getView().canControl,false);
+console.log('Notice tests passed: dismiss recoverable error, preserve required reauthentication');

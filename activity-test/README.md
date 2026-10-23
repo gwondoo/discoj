@@ -16,6 +16,9 @@ Activity rows hide stable track numbers; `/추가` and `/삭제` still work too.
 
 ## Build and run
 
+Images are local-only and excluded from Git. On a new machine, first copy the
+internal image folders described in [assets/README.md](assets/README.md).
+
 ```sh
 cd activity-test
 npm ci

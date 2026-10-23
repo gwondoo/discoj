@@ -1,5 +1,12 @@
 # DJ K.K. stage
 
+## Local-only images
+
+Images are ignored by Git and are not included in a fresh clone. Keep originals
+in `assets/source/` and runtime images in `public/dj/` and `public/scene/`.
+Copy these folders separately through an approved internal channel before use.
+Never force-add images to Git. Untracking current files does not erase earlier commits.
+
 The booth uses the official Animal Crossing render of DJ K.K. ("K.K. Slider DJ
 NL", 2480×2320 with transparency, from Nookipedia), stored losslessly as
 `source/kk-dj.webp`, for this internal Activity only. Don't publish it outside
@@ -35,8 +42,8 @@ lantern). Originals live in `source/scene/`;
 are sized in stage-height units (`cqh`) and keep to the horizon and bottom
 corners, which the console doesn't cover. The lamps glow at sunset and night. The booth is sized by the
 stage height so the console's base runs off the bottom edge. The scene
-follows the viewer's local time on office-friendly ranges (morning 5–11, day
-11–18, evening 18–21, night 21–5); each time of day grades the background with a filter and K.K. and
+follows the viewer's local time on office-friendly ranges (morning 9–11, day
+11–14, evening 14–16, night 16–9); each time of day grades the background with a filter and K.K. and
 the console with a multiply tint plus colored side light clipped to each layer. At night K.K. is dimmed to the
 scene's level while the neon logo and LEDs stay bright. Reduced-motion preferences stop all
 animation.

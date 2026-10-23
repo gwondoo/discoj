@@ -6,3 +6,16 @@ __pycache__/
 .pytest_cache/
 
 data/
+
+# Images are local-only assets; never include them in GitHub uploads.
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.avif
+*.ico
+*.bmp
+*.tif
+*.tiff
+*.svg
