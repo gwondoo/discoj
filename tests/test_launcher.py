@@ -24,7 +24,7 @@ class LauncherTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(interaction.response.send_message.call_args.kwargs['ephemeral'])
         await bot.close()
 
-    async def test_guide_reuses_saved_message_and_pins_only_once(self):
+    async def test_guide_reuses_saved_message_without_automatic_pinning(self):
         bot = MusicBot(SimpleNamespace(), 1, 2, set())
         bot._connection.user = SimpleNamespace(id=7)
         message = SimpleNamespace(id=123, author=SimpleNamespace(id=7), pinned=False,
@@ -45,7 +45,7 @@ class LauncherTests(unittest.IsolatedAsyncioTestCase):
                 await bot.ensure_activity_launcher()
                 self.assertEqual(json.loads(Path(path).read_text())['message_id'], 123)
         channel.send.assert_awaited_once()
-        message.pin.assert_awaited_once()
+        message.pin.assert_not_awaited()
         message.edit.assert_awaited_once()
         self.assertEqual(message.edit.call_args.kwargs['view'].children[0].label, '디스코제이 열기')
         await bot.close()

@@ -66,4 +66,6 @@ Duplicate request IDs return the original result without repeating the write.
 
 ### GET /api/playback-events
 
-기존 Activity Bearer 세션으로 인증하는 NDJSON 스트림입니다. 약 1초마다 `{current, observedAt}`를 보내며 `current`는 `/api/state`와 동일한 공개 재생 정보입니다. `observedAt`은 서버의 단조 증가 밀리초 값이며, 클라이언트는 이전 상태가 최신 재생 상태를 덮어쓰지 않도록 비교합니다. `/api/state`도 같은 필드를 제공합니다. 약 12초마다 연결을 마치므로 클라이언트가 재접속해야 하며 재접속 시 세션·멤버 권한을 확인합니다. 이 경로는 재생목록 조회나 YouTube API를 호출하지 않습니다.
+기존 Activity Bearer 세션으로 인증하는 NDJSON 스트림입니다. 연결 직후와 공개 재생 상태 변경 시에만 `{current, observedAt}`를 보내며 `current`는 `/api/state`와 동일한 공개 재생 정보입니다. `observedAt`은 서버의 단조 증가 밀리초 값이며, 클라이언트는 이전 상태가 최신 재생 상태를 덮어쓰지 않도록 비교합니다. `/api/state`도 같은 필드를 제공합니다. 변경이 없으면 15초마다 `{heartbeat:true}`를 보냅니다. 약 55초마다 연결을 마치므로 클라이언트가 재접속해야 하며 재접속 시 세션·멤버 권한을 확인합니다. 이 경로는 재생목록 조회나 YouTube API를 호출하지 않습니다.
+
+스트림 연결이 정상일 때 목록 갱신은 `GET /api/state?queueOnly=1`을 사용해 `current`와 `observedAt`을 중복 전송하지 않습니다. 스트림이 끊기면 전체 상태 조회로 복구합니다. 서버는 250ms 간격으로 메모리의 공개 상태만 비교하며, 브라우저의 동일 상태 보고는 변경 이벤트로 보내지 않습니다.

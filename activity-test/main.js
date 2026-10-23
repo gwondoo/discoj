@@ -6,9 +6,9 @@ import {FreshRead} from './fresh-read.js';
 const $ = selector => document.querySelector(selector);
 const clientId = '1562673893205086288';
 let sdk, session, snapshot, busy = false, adding = false, online = false, timer, volumeDirty = false, pollGeneration = 0;
-const stateRead = new FreshRead(() => api('state'));
+const stateRead = new FreshRead(() => api(Date.now() - lastLiveAt < 25000 ? 'state?queueOnly=1' : 'state'));
 let queueSignature = '';
-let liveConnection, liveGeneration = 0, lastPlaybackAt = -1;
+let liveConnection, liveGeneration = 0, lastPlaybackAt = -1, lastLiveAt = 0;
 let deleteTarget = null, deleting = false;
 const transition = new PlaybackTransition();
 let noticeTimer;
@@ -107,7 +107,7 @@ function render(data) {
 }
 async function refresh(manual = false, force = false) {
   if (!session) return;
-    try {const data = await stateRead.run(manual || force); online = true; render(data); if (manual) notice('');}
+    try {const data = await stateRead.run(manual || force); online = true; render({...snapshot, ...data}); if (manual) notice('');}
     catch (error) {online = false; transition.clear(); if (snapshot) render(snapshot); notice(error.message, true); updateControls();}
 }
 async function poll() {
@@ -120,7 +120,9 @@ async function followPlayback(generation) {
   while (session && generation === liveGeneration) {
     const controller = new AbortController();
     liveConnection = controller;
-    const watchdog = setTimeout(() => controller.abort(), 20000);
+    let watchdog;
+    const watch = () => {clearTimeout(watchdog); watchdog = setTimeout(() => controller.abort(), 25000);};
+    watch();
     try {
       const response = await fetch('/api/playback-events', {
         headers: {Authorization: 'Bearer ' + session}, cache: 'no-store', signal: controller.signal,
@@ -135,14 +137,19 @@ async function followPlayback(generation) {
         let end;
         while ((end = buffer.indexOf('\n')) >= 0) {
           const update = JSON.parse(buffer.slice(0, end)); buffer = buffer.slice(end + 1);
-          if (snapshot && generation === liveGeneration) {
-            online = true; render({...snapshot, ...update});
+          if (generation === liveGeneration) {
+            lastLiveAt = Date.now(); watch();
+            if (snapshot) {
+              online = true;
+              if (update.heartbeat) updateControls();
+              else render({...snapshot, ...update});
+            }
           }
         }
       }
     } catch {
       if (generation === liveGeneration && snapshot) {
-        online = false; render(snapshot);
+        lastLiveAt = 0; online = false; render(snapshot);
         await new Promise(resolve => setTimeout(resolve, 3000));
       }
     } finally { clearTimeout(watchdog); }
@@ -159,7 +166,7 @@ async function control(action, value) {
     const result = await api('control', {action, ...(value === undefined ? {} : {value}), requestId: crypto.randomUUID()});
     volumeDirty = false;
     if (!result.ok) transition.clear();
-    await refresh(false, true);
+    lastLiveAt = 0; await refresh(false, true);
     if (!result.ok) notice(result.message, true);
   } catch (error) {transition.clear(); if (snapshot) render(snapshot); notice(error.name === 'TimeoutError' ? '응답이 늦어 조작 결과를 확인하지 못했어요. 현재 상태를 확인해주세요.' : error.message, true);}
   finally {busy = false; updateControls();}
@@ -176,7 +183,7 @@ $('#add-form').onsubmit = async event => {
   try {
     const result = await api('add', {link, requestId: crypto.randomUUID()});
     if (result.ok) $('#add-link').value = '';
-    await refresh(false, true); notice(result.ok ? '추가했어요.' : result.message, !result.ok, result.ok);
+    lastLiveAt = 0; await refresh(false, true); notice(result.ok ? '추가했어요.' : result.message, !result.ok, result.ok);
   } catch (error) {notice(error.name === 'TimeoutError' ? '추가 결과를 확인하지 못했어요. 다시 추가하기 전에 목록을 확인해주세요.' : error.message, true);}
   finally {adding = false; updateControls();}
 };
@@ -195,7 +202,7 @@ $('#delete-confirm').onclick = async () => {
     const result = await api('delete', {number: deleteTarget.number, requestId: deleteTarget.requestId});
     if (result.ok) {$('#delete-dialog').close(); notice('삭제했어요.', false, true);}
     else $('#delete-error').textContent = result.message;
-    await refresh(false, true);
+    lastLiveAt = 0; await refresh(false, true);
   } catch (error) {$('#delete-error').textContent = error.name === 'TimeoutError' ? '삭제 결과를 확인하지 못했어요. 취소 후 목록을 확인해주세요.' : error.message;}
   finally {
     deleting = false;
@@ -209,7 +216,7 @@ document.addEventListener('visibilitychange', () => {if (!document.hidden && ses
 window.addEventListener('focus', () => {if (session) poll();});
 async function start() {
   transition.clear();
-  ++liveGeneration; liveConnection?.abort(); lastPlaybackAt = -1;
+  ++liveGeneration; liveConnection?.abort(); lastPlaybackAt = -1; lastLiveAt = 0;
   ++pollGeneration; clearTimeout(timer); session = null; online = false; updateControls();
   $('#reconnect').hidden = true;
   if (!new URLSearchParams(location.search).has('frame_id')) {

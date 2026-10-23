@@ -334,7 +334,7 @@ class MusicBot(discord.Client):
         try:
             await self.ensure_activity_launcher()
         except discord.HTTPException:
-            log.warning('Activity 안내 메시지를 게시하거나 고정하지 못했습니다.')
+            log.warning('Activity 안내 메시지를 갱신하지 못했습니다.')
 
     async def ensure_activity_launcher(self):
         async with self.launcher_lock:
@@ -374,5 +374,3 @@ class MusicBot(discord.Client):
             temporary = state_path.with_suffix('.tmp')
             temporary.write_text(json.dumps({'channel_id': self.channel_id, 'message_id': message.id}))
             temporary.replace(state_path)
-            if not message.pinned:
-                await message.pin(reason='디스코제이 Activity 실행 안내')

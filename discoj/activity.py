@@ -11,6 +11,10 @@ from .youtube import PlaylistError
 
 
 class Activity:
+    stream_tick = 0.25
+    stream_heartbeat = 15
+    stream_duration = 55
+
     def __init__(self, playback, bot, http, client_id, client_secret,
                  discord_api='https://discord.com/api/v10', clock=time.monotonic):
         self.playback, self.bot, self.http = playback, bot, http
@@ -112,13 +116,23 @@ class Activity:
         response = web.StreamResponse(headers={'Content-Type': 'application/x-ndjson',
             'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no'})
         await response.prepare(request)
-        # Finite streams recheck membership and session expiry on every reconnect.
+        # Compare only public playback fields; report timestamps are not changes.
+        previous = object()
+        started = last_sent = time.monotonic()
         try:
-            for _ in range(12):
+            while time.monotonic() - started < self.stream_duration:
                 if request.transport is None or request.transport.is_closing():
                     break
-                await response.write((json.dumps(self.playback_state()) + '\n').encode())
-                await asyncio.sleep(1)
+                state = self.playback_state()
+                now = time.monotonic()
+                if state['current'] != previous:
+                    await response.write((json.dumps(state) + '\n').encode())
+                    previous = state['current']
+                    last_sent = now
+                elif now - last_sent >= self.stream_heartbeat:
+                    await response.write(b'{"heartbeat":true}\n')
+                    last_sent = now
+                await asyncio.sleep(self.stream_tick)
         except (ConnectionError, RuntimeError):
             pass
         return response
@@ -129,7 +143,7 @@ class Activity:
             items = await self.playback.playlist.browser_queue()
         except PlaylistError as error:
             raise web.HTTPServiceUnavailable(text=str(error)) from None
-        return web.json_response({**self.playback_state(),
+        return web.json_response({**({} if request.query.get('queueOnly') == '1' else self.playback_state()),
             'playlistUrl': self.playback.playlist.youtube.url,
             'items': [{'number': item['number'], 'title': item['title'],
                        'url': 'https://www.youtube.com/watch?v=' + item['video_id']} for item in items]},

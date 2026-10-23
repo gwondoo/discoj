@@ -86,6 +86,30 @@ class ActivityTests(unittest.IsolatedAsyncioTestCase):
         async with self.http.get(self.server.make_url('/api/playback-events')) as response:
             self.assertEqual(response.status, 401)
 
+    async def test_stream_sends_changes_only_heartbeat_and_reconnect_snapshot(self):
+        self.activity.stream_tick = 0.01
+        self.activity.stream_heartbeat = 0.08
+        self.activity.stream_duration = 0.2
+        headers = await self.login()
+        async with self.http.get(self.server.make_url('/api/playback-events'), headers=headers) as response:
+            first = json.loads(await response.content.readline())
+            self.assertEqual(first['current']['state'], 'playing')
+            # A normal browser heartbeat updates freshness, not public state.
+            self.playback.updated = self.now
+            heartbeat = json.loads(await response.content.readline())
+            self.assertEqual(heartbeat, {'heartbeat': True})
+            self.playback.data = {**self.playback.data, 'state': 'paused'}
+            changed = json.loads(await response.content.readline())
+            self.assertEqual(changed['current']['state'], 'paused')
+        async with self.http.get(self.server.make_url('/api/playback-events'), headers=headers) as response:
+            latest = json.loads(await response.content.readline())
+            self.assertEqual(latest['current']['state'], 'paused')
+        async with self.http.get(self.server.make_url('/api/state?queueOnly=1'), headers=headers) as response:
+            data = await response.json()
+            self.assertIn('items', data)
+            self.assertNotIn('current', data)
+            self.assertNotIn('observedAt', data)
+
     async def test_authentication_state_and_revoked_channel_access(self):
         async with self.http.get(self.server.make_url('/api/state')) as response:
             self.assertEqual(response.status, 401)
