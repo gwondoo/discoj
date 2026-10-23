@@ -14,6 +14,7 @@ class ActivityTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.now = 100
         self.oauth_status = 200
+        self.oauth_expiry = 86400
         self.calls = []
         async def oauth(request):
             data = await request.post()
@@ -22,7 +23,7 @@ class ActivityTests(unittest.IsolatedAsyncioTestCase):
                 return web.Response(status=self.oauth_status, text='upstream private error')
             if data.get('code') != 'valid-code' or data.get('client_secret') != 'private-secret':
                 return web.json_response({'error': 'invalid_grant'}, status=400)
-            return web.json_response({'access_token': 'discord-access', 'expires_in': 7200, 'scope': 'identify', 'token_type': 'Bearer'})
+            return web.json_response({'access_token': 'discord-access', 'expires_in': self.oauth_expiry, 'scope': 'identify', 'token_type': 'Bearer'})
         async def identity(request):
             self.assertEqual(request.headers.get('Authorization'), 'Bearer discord-access')
             self.calls.append(('identity', None))
@@ -174,7 +175,17 @@ class ActivityTests(unittest.IsolatedAsyncioTestCase):
             data = await response.json()
             self.assertFalse(data['ok'])
             self.assertIn('확장', data['message'])
-        self.now += 3601
+        self.now += 8 * 60 * 60 - 1
+        async with self.http.get(self.server.make_url('/api/state'), headers=headers) as response:
+            self.assertEqual(response.status, 200)
+        self.now += 1
+        async with self.http.get(self.server.make_url('/api/state'), headers=headers) as response:
+            self.assertEqual(response.status, 401)
+
+    async def test_session_does_not_outlive_shorter_discord_token(self):
+        self.oauth_expiry = 7200
+        headers = await self.login()
+        self.now += 7200
         async with self.http.get(self.server.make_url('/api/state'), headers=headers) as response:
             self.assertEqual(response.status, 401)
 

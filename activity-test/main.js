@@ -2,6 +2,7 @@ import {DiscordSDK} from '@discord/embedded-app-sdk';
 import './style.css';
 import {PlaybackTransition} from './playback-transition.js';
 import {FreshRead} from './fresh-read.js';
+import {playbackScene} from './playback-scene.js';
 
 const $ = selector => document.querySelector(selector);
 const clientId = '1562673893205086288';
@@ -64,6 +65,7 @@ function render(data) {
   $('#current-heading').textContent = current?.state === 'paused' ? '일시정지한 곡' : '지금 듣는 곡';
   $('#play-state').textContent = !online ? '상태 확인 필요' : loading ? '곡을 불러오는 중…' : current ? current.state === 'playing' ? '재생 중' : '일시정지됨' : '연결 대기';
   $('.player').setAttribute('aria-busy', String(Boolean(loading)));
+  $('.player').dataset.playback = playbackScene({online, current, loading});
   $('#video-link').hidden = !current || Boolean(loading);
   $('#video-link').onclick = () => current && openYouTube(current.url);
   if (current && !volumeDirty) {$('#volume').value = current.volume; $('#volume-value').textContent = current.volume + '%';}

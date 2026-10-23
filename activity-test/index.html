@@ -1,12 +1,19 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>디스코제이</title></head>
 <body><main>
-<header><h1>디스코제이</h1><span id="connection" role="status">연결 중</span></header>
+<header><h1><span class="brand-decks" aria-hidden="true"><i></i><i></i></span>디스코제이</h1><span id="connection" role="status">연결 중</span></header>
 <div class="feedback"><p id="notice" role="status" aria-live="polite">Discord 인증 중…</p><button id="reconnect" hidden>다시 연결</button></div>
 <div class="workspace">
 <section class="player" aria-labelledby="current-heading">
   <div class="section-head"><h2 id="current-heading">지금 듣는 곡</h2><span id="play-state">확인 중</span></div>
-  <div class="track-info"><div class="record" aria-hidden="true"><span></span></div><div class="track-copy"><h3 id="title">재생 정보 확인 중</h3><button id="video-link" class="text-button" hidden>영상 열기 ↗</button></div></div>
+  <div class="dj-stage" aria-hidden="true">
+    <div class="scene-orb"></div><div class="scene-floor"></div>
+    <span class="stage-label">DISCOJ RADIO</span>
+    <div class="scene-notes"><span>♪</span><span>♫</span><span>♪</span></div>
+    <div class="scene-rest"><i></i><i></i><i></i></div>
+    <div class="dj-character"><div class="dj-photo-window"><img class="dj-console-layer" src="/dj-original.jpeg" alt="" width="399" height="501"><img class="dj-dog-layer" src="/dj-original.jpeg" alt="" width="399" height="501"></div></div>
+    <div class="equalizer"><i></i><i></i><i></i><i></i><i></i></div>
+  </div><div class="track-info"><div class="track-copy"><h3 id="title">재생 정보 확인 중</h3><button id="video-link" class="text-button" hidden>영상 열기 ↗</button></div></div>
   <div class="transport" role="group" aria-label="재생 컨트롤">
     <button data-action="previous" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14M19 5 8 12l11 7Z"/></svg><span>이전곡</span></button>
     <button data-action="play" class="primary" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg><span>재생</span></button>

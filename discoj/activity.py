@@ -11,6 +11,7 @@ from .youtube import PlaylistError
 
 
 class Activity:
+    session_lifetime = 8 * 60 * 60
     stream_tick = 0.25
     stream_heartbeat = 15
     stream_duration = 55
@@ -81,7 +82,7 @@ class Activity:
             await self.check_member(user_id)
         session_token = secrets.token_urlsafe(32)
         self.sessions[session_token] = {'user': user_id, 'checked': self.clock(),
-            'expires': self.clock() + min(3600, max(1, int(token.get('expires_in', 3600)))),
+            'expires': self.clock() + min(self.session_lifetime, max(1, int(token.get('expires_in', self.session_lifetime)))),
             'commands': OrderedDict(), 'last_control': -100}
         return web.json_response({'session': session_token, 'accessToken': access},
                                  headers={'Cache-Control': 'no-store'})
