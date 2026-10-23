@@ -63,3 +63,7 @@ dialog is open cannot retarget it to another song. Everyone with channel access
 can delete, matching `/삭제`. The existing playlist delete path enforces quota,
 removes the item from the shared memory queue, and preserves current playback.
 Duplicate request IDs return the original result without repeating the write.
+
+### GET /api/playback-events
+
+기존 Activity Bearer 세션으로 인증하는 NDJSON 스트림입니다. 약 1초마다 `{current, observedAt}`를 보내며 `current`는 `/api/state`와 동일한 공개 재생 정보입니다. `observedAt`은 서버의 단조 증가 밀리초 값이며, 클라이언트는 이전 상태가 최신 재생 상태를 덮어쓰지 않도록 비교합니다. `/api/state`도 같은 필드를 제공합니다. 약 12초마다 연결을 마치므로 클라이언트가 재접속해야 하며 재접속 시 세션·멤버 권한을 확인합니다. 이 경로는 재생목록 조회나 YouTube API를 호출하지 않습니다.

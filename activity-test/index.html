@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>디스코제이</title></head>
 <body><main>
-<header><h1>디스코제이<span>사무실 음악</span></h1><span id="connection" role="status">연결 중</span></header>
+<header><h1>디스코제이</h1><span id="connection" role="status">연결 중</span></header>
 <div class="feedback"><p id="notice" role="status" aria-live="polite">Discord 인증 중…</p><button id="reconnect" hidden>다시 연결</button></div>
 <div class="workspace">
 <section class="player" aria-labelledby="current-heading">
@@ -17,9 +17,8 @@
 </section>
 <section class="queue" aria-labelledby="queue-heading"><div class="section-head"><h2 id="queue-heading">재생목록 <span id="total">0곡</span></h2><button id="refresh" class="text-button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M5 8a8 8 0 0 1 13-3l2 3M19 16a8 8 0 0 1-13 3l-2-3"/></svg>새로고침</button></div>
 <form id="add-form"><input id="add-link" type="url" aria-label="추가할 유튜브 영상 링크" placeholder="유튜브 링크로 곡 추가" maxlength="2048" autocomplete="off" required disabled><button id="add-submit" disabled>추가</button></form>
-<ol id="tracks"></ol><p id="empty" hidden>아직 곡이 없어요.<br><span>위에 유튜브 링크를 넣어 첫 곡을 추가하세요.</span></p><button id="playlist-link" class="text-button" hidden>유튜브 재생목록 열기 ↗</button></section>
+<ol id="tracks"></ol><p id="empty" hidden>재생목록이 비어 있어요.</p><button id="playlist-link" class="text-button" hidden>유튜브 재생목록 열기 ↗</button></section>
 </div>
-<footer><span>곡을 누르면 바로 재생</span><span>전체 반복 · 공용 스피커</span></footer>
 </main>
 <dialog id="delete-dialog" aria-labelledby="delete-heading" aria-describedby="delete-title delete-note">
 <h2 id="delete-heading">이 곡을 삭제할까요?</h2><p id="delete-title"></p><p id="delete-note"></p>

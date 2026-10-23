@@ -1,4 +1,5 @@
 import asyncio
+import json
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
@@ -60,6 +61,30 @@ class ActivityTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(response.status, 200)
             data = await response.json()
         return {'Authorization': 'Bearer ' + data['session']}
+
+    async def test_two_viewers_follow_shared_playback_without_youtube_reads(self):
+        first_headers, second_headers = await self.login(), await self.login()
+        async with self.http.get(self.server.make_url('/api/playback-events'), headers=first_headers) as first, \
+                   self.http.get(self.server.make_url('/api/playback-events'), headers=second_headers) as second:
+            async def read(response):
+                return json.loads(await asyncio.wait_for(response.content.readline(), 3))
+            for state in await asyncio.gather(read(first), read(second)):
+                self.assertEqual(state['current']['state'], 'playing')
+                self.assertNotIn('private-browser-session', str(state))
+            self.playback.data = {**self.playback.data, 'state': 'paused', 'volume': 40}
+            states = await asyncio.gather(read(first), read(second))
+            for state in states:
+                self.assertEqual(state['current']['state'], 'paused')
+                self.assertEqual(state['current']['volume'], 40)
+            self.playback.data = {**self.playback.data, 'state': 'playing'}
+            for state in await asyncio.gather(read(first), read(second)):
+                self.assertEqual(state['current']['state'], 'playing')
+            self.now += 46
+            for state in await asyncio.gather(read(first), read(second)):
+                self.assertIsNone(state['current'])
+        self.playlist.browser_queue.assert_not_awaited()
+        async with self.http.get(self.server.make_url('/api/playback-events')) as response:
+            self.assertEqual(response.status, 401)
 
     async def test_authentication_state_and_revoked_channel_access(self):
         async with self.http.get(self.server.make_url('/api/state')) as response:

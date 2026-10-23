@@ -1,14 +1,23 @@
 import {DiscordSDK} from '@discord/embedded-app-sdk';
 import './style.css';
 import {PlaybackTransition} from './playback-transition.js';
+import {FreshRead} from './fresh-read.js';
 
 const $ = selector => document.querySelector(selector);
 const clientId = '1562673893205086288';
-let sdk, session, snapshot, busy = false, adding = false, online = false, refreshing, timer, volumeDirty = false, pollGeneration = 0;
+let sdk, session, snapshot, busy = false, adding = false, online = false, timer, volumeDirty = false, pollGeneration = 0;
+const stateRead = new FreshRead(() => api('state'));
 let queueSignature = '';
+let liveConnection, liveGeneration = 0, lastPlaybackAt = -1;
 let deleteTarget = null, deleting = false;
 const transition = new PlaybackTransition();
-const notice = (text, error = false) => { $('#notice').textContent = text; $('#notice').classList.toggle('error', error); };
+let noticeTimer;
+const notice = (text, error = false, temporary = false) => {
+  clearTimeout(noticeTimer);
+  $('#notice').textContent = text;
+  $('#notice').classList.toggle('error', error);
+  if (temporary && text && !error) noticeTimer = setTimeout(() => notice(''), 3000);
+};
 const timeout = (promise, ms, message) => {
   let handle;
   return Promise.race([promise, new Promise((_, reject) => {handle = setTimeout(() => reject(new Error(message)), ms);})]).finally(() => clearTimeout(handle));
@@ -45,12 +54,15 @@ async function openYouTube(url) {
   } catch {notice('유튜브 링크를 열지 못했어요.', true);}
 }
 function render(data) {
+  if (data.observedAt < lastPlaybackAt && snapshot) data = {...data, current: snapshot.current};
+  else if (data.observedAt !== undefined) lastPlaybackAt = data.observedAt;
   snapshot = data;
   const current = data.current;
   const {loading, expired} = transition.update(current);
   if (expired) notice('선택한 곡의 재생을 확인하지 못했어요. 재생 탭 연결을 확인해주세요.', true);
   $('#title').textContent = loading ? loading.title || '선택한 곡' : current?.title || '연결된 유튜브 재생 탭이 없어요';
-  $('#play-state').textContent = loading ? '곡을 불러오는 중…' : current ? current.state === 'playing' ? '재생 중' : '일시정지' : '연결 대기';
+  $('#current-heading').textContent = current?.state === 'paused' ? '일시정지한 곡' : '지금 듣는 곡';
+  $('#play-state').textContent = !online ? '상태 확인 필요' : loading ? '곡을 불러오는 중…' : current ? current.state === 'playing' ? '재생 중' : '일시정지됨' : '연결 대기';
   $('.player').setAttribute('aria-busy', String(Boolean(loading)));
   $('#video-link').hidden = !current || Boolean(loading);
   $('#video-link').onclick = () => current && openYouTube(current.url);
@@ -59,7 +71,7 @@ function render(data) {
   $('#empty').hidden = data.items.length > 0;
   $('#playlist-link').hidden = false;
   $('#playlist-link').onclick = () => openYouTube(data.playlistUrl);
-  const signature = JSON.stringify([data.items, current?.url, current?.state]);
+  const signature = JSON.stringify([data.items, current?.url, current?.state, online]);
   if (signature !== queueSignature) {
     queueSignature = signature;
     const fragment = document.createDocumentFragment();
@@ -71,7 +83,7 @@ function render(data) {
       title.setAttribute('aria-label', trackTitle + ' 재생');
       li.append(title);
       const badge = document.createElement('span');
-      if (current?.url === track.url) {li.className = 'active'; badge.className = 'now';badge.textContent = current.state === 'playing' ? '재생 중' : '일시정지';}
+      if (current?.url === track.url) {li.className = 'active'; badge.className = 'now';badge.textContent = !online ? '확인 필요' : current.state === 'playing' ? '재생 중' : '일시정지됨';}
       else {badge.className = 'play-hint';badge.textContent = '재생';}
       li.append(badge);
       const remove = document.createElement('button');
@@ -81,7 +93,8 @@ function render(data) {
         if (deleting) return;
         deleteTarget = {...track, requestId: crypto.randomUUID()};
         $('#delete-title').textContent = trackTitle;
-        $('#delete-note').textContent = snapshot?.current?.url === track.url ? '현재 음악은 끝까지 재생됩니다.' : '공용 재생목록에서 삭제합니다.';
+        $('#delete-note').textContent = snapshot?.current?.url === track.url ? '현재 음악은 끝까지 재생됩니다.' : '';
+        $('#delete-note').hidden = !$('#delete-note').textContent;
         $('#delete-error').textContent = '';
         $('#delete-dialog').showModal();
       };
@@ -92,15 +105,10 @@ function render(data) {
   }
   updateControls();
 }
-async function refresh(manual = false) {
+async function refresh(manual = false, force = false) {
   if (!session) return;
-  if (refreshing) return refreshing;
-  refreshing = (async () => {
-    try {const data = await api('state'); online = true; render(data); if (manual) notice('목록을 갱신했어요.');}
+    try {const data = await stateRead.run(manual || force); online = true; render(data); if (manual) notice('');}
     catch (error) {online = false; transition.clear(); if (snapshot) render(snapshot); notice(error.message, true); updateControls();}
-    finally {refreshing = null;}
-  })();
-  return refreshing;
 }
 async function poll() {
   const generation = ++pollGeneration;
@@ -108,19 +116,51 @@ async function poll() {
   await refresh();
   if (session && generation === pollGeneration) timer = setTimeout(poll, document.hidden ? 10000 : 2000);
 }
+async function followPlayback(generation) {
+  while (session && generation === liveGeneration) {
+    const controller = new AbortController();
+    liveConnection = controller;
+    const watchdog = setTimeout(() => controller.abort(), 20000);
+    try {
+      const response = await fetch('/api/playback-events', {
+        headers: {Authorization: 'Bearer ' + session}, cache: 'no-store', signal: controller.signal,
+      });
+      if (!response.ok || !response.body) throw new Error('재생 상태 연결을 확인해주세요.');
+      const reader = response.body.getReader(), decoder = new TextDecoder();
+      let buffer = '';
+      while (generation === liveGeneration) {
+        const {value, done} = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, {stream: true});
+        let end;
+        while ((end = buffer.indexOf('\n')) >= 0) {
+          const update = JSON.parse(buffer.slice(0, end)); buffer = buffer.slice(end + 1);
+          if (snapshot && generation === liveGeneration) {
+            online = true; render({...snapshot, ...update});
+          }
+        }
+      }
+    } catch {
+      if (generation === liveGeneration && snapshot) {
+        online = false; render(snapshot);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+    } finally { clearTimeout(watchdog); }
+  }
+}
 async function control(action, value) {
   if (busy || transition.pending || !online || !session || !snapshot?.current) return;
   if (action === 'select') {
     const track = snapshot.items.find(track => track.number === value);
     if (track) {transition.begin(track, snapshot.current.url); render(snapshot);}
   }
-  busy = true; updateControls(); notice('재생 탭에 조작을 전달하고 있어요…');
+  busy = true; updateControls(); notice('');
   try {
     const result = await api('control', {action, ...(value === undefined ? {} : {value}), requestId: crypto.randomUUID()});
     volumeDirty = false;
     if (!result.ok) transition.clear();
-    await refresh();
-    notice(result.message, !result.ok);
+    await refresh(false, true);
+    if (!result.ok) notice(result.message, true);
   } catch (error) {transition.clear(); if (snapshot) render(snapshot); notice(error.name === 'TimeoutError' ? '응답이 늦어 조작 결과를 확인하지 못했어요. 현재 상태를 확인해주세요.' : error.message, true);}
   finally {busy = false; updateControls();}
 }
@@ -132,11 +172,11 @@ $('#add-form').onsubmit = async event => {
   if (adding || !session || !online) return;
   const link = $('#add-link').value.trim();
   if (!link) return;
-  adding = true; updateControls(); notice('곡을 추가하고 있어요. 현재 음악은 계속 재생됩니다.');
+  adding = true; updateControls(); notice('');
   try {
     const result = await api('add', {link, requestId: crypto.randomUUID()});
     if (result.ok) $('#add-link').value = '';
-    await refresh(); notice(result.message, !result.ok);
+    await refresh(false, true); notice(result.ok ? '추가했어요.' : result.message, !result.ok, result.ok);
   } catch (error) {notice(error.name === 'TimeoutError' ? '추가 결과를 확인하지 못했어요. 다시 추가하기 전에 목록을 확인해주세요.' : error.message, true);}
   finally {adding = false; updateControls();}
 };
@@ -153,9 +193,9 @@ $('#delete-confirm').onclick = async () => {
   updateControls();
   try {
     const result = await api('delete', {number: deleteTarget.number, requestId: deleteTarget.requestId});
-    if (result.ok) {$('#delete-dialog').close(); notice(result.message);}
+    if (result.ok) {$('#delete-dialog').close(); notice('삭제했어요.', false, true);}
     else $('#delete-error').textContent = result.message;
-    await refresh();
+    await refresh(false, true);
   } catch (error) {$('#delete-error').textContent = error.name === 'TimeoutError' ? '삭제 결과를 확인하지 못했어요. 취소 후 목록을 확인해주세요.' : error.message;}
   finally {
     deleting = false;
@@ -166,8 +206,10 @@ $('#delete-confirm').onclick = async () => {
 };
 $('#reconnect').onclick = () => start();
 document.addEventListener('visibilitychange', () => {if (!document.hidden && session) poll();});
+window.addEventListener('focus', () => {if (session) poll();});
 async function start() {
   transition.clear();
+  ++liveGeneration; liveConnection?.abort(); lastPlaybackAt = -1;
   ++pollGeneration; clearTimeout(timer); session = null; online = false; updateControls();
   $('#reconnect').hidden = true;
   if (!new URLSearchParams(location.search).has('frame_id')) {
@@ -182,6 +224,7 @@ async function start() {
     await timeout(sdk.commands.authenticate({access_token: data.accessToken}), 15000, 'Discord 인증 응답이 없어요. 다시 연결해주세요.');
     session = data.session; notice('');
     await poll();
+    void followPlayback(liveGeneration);
   } catch (error) {session = null; notice(error.message || '인증을 완료하지 못했어요.', true); $('#reconnect').hidden = false; updateControls();}
 }
 start();

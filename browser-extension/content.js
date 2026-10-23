@@ -92,7 +92,7 @@
     const list = document.createElement('div'); list.className = 'list';
     for (const item of queue.items) {
       const button = document.createElement('button'); button.className = 'track' + (item.video_id === currentId() ? ' current' : '');
-      button.textContent = `${item.number} · ${item.title}`; button.disabled = disconnected; button.onclick = () => step(null, false, item.video_id); list.append(button);
+      button.textContent = item.title; button.disabled = disconnected; button.onclick = () => step(null, false, item.video_id); list.append(button);
     }
     root.append(list);
   }
@@ -112,8 +112,20 @@
     const video = document.querySelector('video.html5-main-video');
     if (!video || video.readyState < 2) return {ok: false, error: '재생 가능한 영상을 찾지 못했어요.'};
     let message;
-    if (command.action === 'pause') { pending = null; video.pause(); message = '일시정지했어요.'; }
-    else if (command.action === 'play') { pending = null; await video.play(); message = '재생했어요.'; }
+    if (command.action === 'pause' || command.action === 'play') {
+      pending = null;
+      if (command.action === 'pause') video.pause();
+      else await video.play();
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const expectedPaused = command.action === 'pause';
+      if (!ownsPage() || navigating || command.videoId !== currentId() ||
+          document.querySelector('video.html5-main-video') !== video ||
+          video.paused !== expectedPaused || (!expectedPaused && video.ended)) {
+        report();
+        return {ok: false, error: '유튜브의 실제 재생 상태를 확인하지 못했어요. 현재 상태를 확인 후 다시 눌러주세요.'};
+      }
+      message = expectedPaused ? '일시정지했어요.' : '재생했어요.';
+    }
     else if (['previous', 'next', 'select'].includes(command.action)) {
       if ((command.action !== 'select' && !active()) || !snapshot || disconnected || Date.now() - received > 30000)
         return {ok: false, error: '최신 재생목록을 확인하지 못했어요.'};

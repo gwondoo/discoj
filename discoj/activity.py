@@ -1,5 +1,6 @@
 """Discord-authenticated Activity API. Never exposes the extension bridge token."""
 import asyncio
+import json
 import secrets
 import time
 from collections import OrderedDict
@@ -101,15 +102,34 @@ class Activity:
         except (ValueError, TypeError):
             raise web.HTTPBadRequest(text='요청 형식을 확인해주세요.') from None
 
+    def playback_state(self):
+        current = self.playback.current()
+        return {'current': {key: current[key] for key in ('title', 'url', 'state', 'volume')} if current else None,
+                'observedAt': time.monotonic_ns() // 1000000}
+
+    async def playback_events(self, request):
+        await self.authenticate(request)
+        response = web.StreamResponse(headers={'Content-Type': 'application/x-ndjson',
+            'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no'})
+        await response.prepare(request)
+        # Finite streams recheck membership and session expiry on every reconnect.
+        try:
+            for _ in range(12):
+                if request.transport is None or request.transport.is_closing():
+                    break
+                await response.write((json.dumps(self.playback_state()) + '\n').encode())
+                await asyncio.sleep(1)
+        except (ConnectionError, RuntimeError):
+            pass
+        return response
+
     async def state(self, request):
         await self.authenticate(request)
         try:
             items = await self.playback.playlist.browser_queue()
         except PlaylistError as error:
             raise web.HTTPServiceUnavailable(text=str(error)) from None
-        current = self.playback.current()
-        safe_current = {key: current[key] for key in ('title', 'url', 'state', 'volume')} if current else None
-        return web.json_response({'current': safe_current,
+        return web.json_response({**self.playback_state(),
             'playlistUrl': self.playback.playlist.youtube.url,
             'items': [{'number': item['number'], 'title': item['title'],
                        'url': 'https://www.youtube.com/watch?v=' + item['video_id']} for item in items]},
@@ -197,6 +217,7 @@ class Activity:
         app = web.Application(client_max_size=4096, middlewares=[errors])
         app.router.add_post('/api/session', self.create_session)
         app.router.add_get('/api/state', self.state)
+        app.router.add_get('/api/playback-events', self.playback_events)
         app.router.add_post('/api/control', self.control)
         app.router.add_post('/api/add', self.add)
         app.router.add_post('/api/delete', self.delete)

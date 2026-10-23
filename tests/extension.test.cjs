@@ -95,6 +95,12 @@ function player(current = a.video_id) {
   controls.snapshot([a,b]);
   assert.equal((await controls.control({action:'pause'})).ok,true);assert.equal(controls.video.paused,true);
   assert.equal((await controls.control({action:'play'})).ok,true);assert.equal(controls.video.paused,false);
+  controls.video.pause=()=>{};
+  assert.equal((await controls.control({action:'pause'})).ok,false); // A no-op pause must not claim success.
+  controls.video.pause=()=>{controls.video.paused=true;};
+  controls.video.pause=()=>{controls.video.paused=true;setTimeout(()=>{controls.video.paused=false;},50);};
+  assert.equal((await controls.control({action:'pause'})).ok,false); // YouTube resumed before verification.
+  controls.video.pause=()=>{controls.video.paused=true;};
   await controls.control({action:'volume_down'});assert.equal(controls.video.volume,.9);
   await controls.control({action:'volume',value:0});assert.equal(controls.video.muted,true);
   await controls.control({action:'volume_up'});assert.equal(controls.video.volume,.1);assert.equal(controls.video.muted,false);
