@@ -4,6 +4,7 @@ const paths = {
   play: 'm8 5 11 7-11 7Z',
   pause: 'M8 5v14M16 5v14',
   volume: 'M10 5 5 9H2v6h3l5 4ZM15 8c3 2 3 6 0 8M18 5c5 4 5 10 0 14',
+  'volume-low': 'M10 5 5 9H2v6h3l5 4ZM15 8c3 2 3 6 0 8',
   mute: 'M10 5 5 9H2v6h3l5 4ZM16 9l5 6M21 9l-5 6',
   refresh: 'M20 7v5h-5M4 17v-5h5M5 8a8 8 0 0 1 13-3l2 3M19 16a8 8 0 0 1-13 3l-2-3',
   trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3',

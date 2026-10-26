@@ -211,17 +211,29 @@ h1, h2, h3, p { margin: 0; }
 .round.repeat[aria-pressed=true] { color: var(--mint-dark); background: var(--mint-soft); box-shadow: 0 3px 0 color-mix(in srgb, var(--mint) 45%, var(--shadow)); }
 .repeat-one { position: absolute; top: -4px; right: -4px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-family: var(--display); font-size: var(--fs-2xs); font-weight: 400; line-height: 1; color: var(--on-accent); background: var(--mint); box-shadow: 0 0 0 2px var(--card); }
 
-.fader { --icon: 18px; display: flex; align-items: center; gap: 12px; height: 50px; padding: 0 18px; border-radius: var(--r-pill); background: var(--inset); }
-/* The speaker icon is the label; the words stay for screen readers. */
-.fader label span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.fader label { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-size: var(--fs-sm); color: var(--ink-soft); white-space: nowrap; }
-.fader output { min-width: 40px; text-align: right; font-family: var(--display); font-size: var(--fs-md); color: var(--ink); font-variant-numeric: tabular-nums; }
-.fader input { flex: 1; min-width: 40px; height: 30px; margin: 0; background: none; appearance: none; -webkit-appearance: none; cursor: pointer; }
-.fader input::-webkit-slider-runnable-track { height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--mint) var(--fill), var(--track) var(--fill)); }
-.fader input::-moz-range-track { height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--mint) var(--fill), var(--track) var(--fill)); }
-.fader input::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -7px; border-radius: 50%; background: var(--button); box-shadow: 0 0 0 4px var(--mint), 0 3px 0 4px var(--mint-dark); }
-.fader input::-moz-range-thumb { width: 24px; height: 24px; border: 0; border-radius: 50%; background: var(--button); box-shadow: 0 0 0 4px var(--mint), 0 3px 0 4px var(--mint-dark); }
-.fader input:disabled { opacity: .45; cursor: default; }
+
+/* Title row: the song, then a small "watch on YouTube" link. */
+.now-title { display: flex; align-items: center; justify-content: center; gap: 8px; max-width: 100%; min-width: 0; }
+.now-title h3 { min-width: 0; }
+.yt-link { --icon: 14px; display: grid; place-items: center; flex: none; width: 28px; height: 28px; border: 0; border-radius: 50%; color: var(--ink-soft); background: var(--inset); transition: scale .3s cubic-bezier(.3, 1.8, .5, 1), background-color .15s; }
+.yt-link:hover { color: var(--ink); background: var(--hover); }
+.yt-link:active { scale: .9; transition-duration: .08s; }
+@media (pointer: coarse) { .yt-link { width: 36px; height: 36px; } }
+
+/* Volume: a speaker button at the right end of the transport row. Its badge shows the level;
+   pressing it pops a vertical slider up (applies on release, closes on outside press or Esc). */
+.volume { position: relative; display: grid; }
+.volume-level { position: absolute; right: -8px; bottom: -6px; min-width: 22px; padding: 0 4px; border-radius: var(--r-pill); font-family: var(--display); font-size: 10px; font-weight: 400; line-height: 16px; text-align: center; color: var(--ink-soft); background: var(--card); box-shadow: 0 0 0 1.5px var(--line); font-variant-numeric: tabular-nums; pointer-events: none; }
+.volume .round[aria-expanded=true] { color: var(--ink); background: var(--hover); }
+.volume-pop { position: absolute; z-index: 6; left: 50%; bottom: calc(100% + 14px); translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 8px 12px; border-radius: var(--r-lg); background: var(--card); box-shadow: 0 4px 0 var(--shadow), 0 12px 24px -10px color-mix(in srgb, var(--drop) 45%, #0000); animation: pop .18s cubic-bezier(.3, 1.6, .5, 1); }
+.volume-pop::after { content: ""; position: absolute; top: 100%; left: 50%; translate: -50% 0; border: 8px solid #0000; border-bottom: 0; border-top-color: var(--card); filter: drop-shadow(0 3px 0 var(--shadow)); }
+.volume-pop output { font-family: var(--display); font-size: var(--fs-xs); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.volume-pop input { writing-mode: vertical-lr; direction: rtl; width: 28px; height: var(--pop-h, 128px); margin: 0; background: none; appearance: none; -webkit-appearance: none; cursor: pointer; touch-action: none; }
+.volume-pop input::-webkit-slider-runnable-track { width: 6px; height: 100%; border-radius: 3px; background: linear-gradient(0deg, var(--ink-soft) var(--fill), var(--track) var(--fill)); }
+.volume-pop input::-moz-range-track { width: 6px; border-radius: 3px; background: linear-gradient(0deg, var(--ink-soft) var(--fill), var(--track) var(--fill)); }
+.volume-pop input::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-left: -5px; border-radius: 50%; background: var(--button); box-shadow: 0 0 0 2px var(--ink-soft), 0 2px 0 2px var(--shadow); }
+.volume-pop input::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: var(--button); box-shadow: 0 0 0 2px var(--ink-soft), 0 2px 0 2px var(--shadow); }
+@keyframes pop { from { opacity: 0; scale: .85; } }
 
 /* Playback position: time · bar · length, between the title and the transport.
    Fill follows the scene color (mint playing, yellow paused); see DESIGN.md "재생 진행 막대". */
@@ -234,17 +246,19 @@ h1, h2, h3, p { margin: 0; }
 .progress-chip[data-kind=live]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: blink 2s steps(1) infinite; }
 .progress-track { position: relative; min-width: 0; }
 .progress input { display: block; width: 100%; height: 24px; margin: 0; background: none; appearance: none; -webkit-appearance: none; cursor: pointer; touch-action: none; }
-.progress input::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--bar) var(--fill), var(--track) var(--fill)); }
-.progress input::-moz-range-track { height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--bar) var(--fill), var(--track) var(--fill)); }
-.progress input::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -4px; border-radius: 50%; background: var(--button); box-shadow: 0 0 0 3px var(--bar), 0 2px 0 3px var(--bar-dark); transition: scale .15s; }
-.progress input::-moz-range-thumb { width: 16px; height: 16px; border: 0; border-radius: 50%; background: var(--button); box-shadow: 0 0 0 3px var(--bar), 0 2px 0 3px var(--bar-dark); transition: scale .15s; }
+.progress input::-webkit-slider-runnable-track { height: 5px; border-radius: 3px; background: linear-gradient(90deg, var(--bar) var(--fill), var(--track) var(--fill)); }
+.progress input::-moz-range-track { height: 5px; border-radius: 3px; background: linear-gradient(90deg, var(--bar) var(--fill), var(--track) var(--fill)); }
+.progress input::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; margin-top: -3.5px; border-radius: 50%; background: var(--button); box-shadow: 0 0 0 3px var(--bar), 0 2px 0 3px var(--bar-dark); transition: scale .15s; }
+.progress input::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: var(--button); box-shadow: 0 0 0 3px var(--bar), 0 2px 0 3px var(--bar-dark); transition: scale .15s; }
 .progress input:disabled { cursor: default; }
 .progress input:disabled::-webkit-slider-thumb { visibility: hidden; }
 .progress input:disabled::-moz-range-thumb { visibility: hidden; }
 .progress input:focus-visible { outline-offset: 1px; }
 /* Held thumb grows; the tip shows the target time above it. */
-.progress[data-state=dragging] input::-webkit-slider-thumb { scale: 1.25; }
-.progress[data-state=dragging] input::-moz-range-thumb { scale: 1.25; }
+.progress:hover input:enabled::-webkit-slider-thumb, .progress input:focus-visible::-webkit-slider-thumb { scale: 1.2; }
+.progress:hover input:enabled::-moz-range-thumb, .progress input:focus-visible::-moz-range-thumb { scale: 1.2; }
+.progress[data-state=dragging] input::-webkit-slider-thumb { scale: 1.4; }
+.progress[data-state=dragging] input::-moz-range-thumb { scale: 1.4; }
 .seek-tip { position: absolute; bottom: calc(100% + 2px); left: clamp(22px, var(--fill), calc(100% - 22px)); translate: -50% 0; padding: 2px 8px; border-radius: var(--r-pill); font-family: var(--display); font-size: var(--fs-xs); color: var(--on-accent); background: var(--bar-dark); font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; }
 .seek-tip::after { content: ""; position: absolute; left: 50%; top: 100%; translate: -50% 0; border: 4px solid #0000; border-top-color: var(--bar-dark); }
 /* Waiting for the tab to apply the seek: thumb holds the target and breathes. */
@@ -379,8 +393,6 @@ dialog h2 { font-family: var(--display); font-size: var(--fs-xl); font-weight: 4
   .round { width: 50px; height: 50px; --icon: 20px; }
   .round.side { width: 40px; height: 40px; --icon: 17px; }
   .round.main { width: 66px; height: 66px; --icon: 26px; }
-  .fader { height: 46px; padding: 0 14px; }
-  .fader label span { display: none; }
   .request { height: 48px; }
   .request button { height: 33px; padding: 0 14px 0 10px; }
   .tracks li { min-height: 56px; gap: 10px; }
@@ -408,9 +420,8 @@ dialog h2 { font-family: var(--display); font-size: var(--fs-xl); font-weight: 4
   .round { width: 46px; height: 46px; --icon: 20px; }
   .round.side { width: 38px; height: 38px; --icon: 16px; }
   .round.main { width: 60px; height: 60px; --icon: 24px; }
-  .fader { height: 44px; }
   .workspace { grid-template-columns: minmax(0, 1fr); }
-  .player { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-areas: "head head" "booth dialogue" "booth now" "booth progress" "booth transport" "booth fader"; grid-template-rows: auto auto 1fr auto auto auto; column-gap: 18px; }
+  .player { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-areas: "head head" "booth dialogue" "booth now" "booth progress" "booth transport"; grid-template-rows: auto auto 1fr auto auto; column-gap: 18px; }
   .player > .card-head { grid-area: head; }
   .player > .booth { grid-area: booth; height: auto; min-height: 180px; margin-top: 10px; }
   .player > .dialogue { grid-area: dialogue; }
@@ -419,11 +430,9 @@ dialog h2 { font-family: var(--display); font-size: var(--fs-xl); font-weight: 4
   .player > .now { grid-area: now; }
   .player > .progress { grid-area: progress; }
   .player > .transport { grid-area: transport; }
-  .player > .fader { grid-area: fader; }
 }
 @media (pointer: coarse) {
   #root { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); padding-bottom: max(20px, env(safe-area-inset-bottom)); }
-  .fader input { height: 44px; }
   .request input { font-size: 16px; }
   .text-button { height: 40px; }
   .request { height: 54px; }
@@ -494,11 +503,10 @@ dialog h2 { font-family: var(--display); font-size: var(--fs-xl); font-weight: 4
   .desktop-layout .round { width: 44px; height: 44px; }
   .desktop-layout .round.side { width: 36px; height: 36px; --icon: 16px; }
   .desktop-layout .round.main { width: 58px; height: 58px; --icon: 24px; }
-  .desktop-layout .fader { height: 42px; }
 }
 /* Narrow desktop containers: keep controls ahead of the scrolling crate. */
 @media (max-width: 859px) {
-  .desktop-layout { --stage-h: clamp(80px, calc(100dvh - 395px), 220px); }
+  .desktop-layout { --stage-h: clamp(80px, calc(100dvh - 345px), 220px); }
   .desktop-layout .player[data-attention=false] > .dialogue { display: none; }
 }
 /* Short popups: stage left, current track and controls right; crate below. */
@@ -508,7 +516,7 @@ dialog h2 { font-family: var(--display); font-size: var(--fs-xl); font-weight: 4
   .desktop-layout .topbar { height: 40px; grid-template-columns: 1fr auto; }
   .desktop-layout .clock { display: none; }
   .desktop-layout .workspace { grid-template-columns: minmax(0, 1fr); }
-  .desktop-layout .player { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "head head" "booth ." "booth dialogue" "booth now" "booth progress" "booth transport" "booth fader" "booth ."; grid-template-rows: auto 1fr auto auto auto auto auto 1fr; gap: 0 18px; }
+  .desktop-layout .player { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "head head" "booth ." "booth dialogue" "booth now" "booth progress" "booth transport" "booth ."; grid-template-rows: auto 1fr auto auto auto auto 1fr; gap: 0 18px; }
   .desktop-layout .player > .card-head { grid-area: head; }
   .desktop-layout .player > .booth { grid-area: booth; height: clamp(110px, calc(100dvh - 140px), 220px); min-height: 0; margin-top: 10px; }
   .desktop-layout .player > .dialogue { grid-area: dialogue; margin-top: 18px; padding: 16px 14px 10px; }
@@ -517,13 +525,13 @@ dialog h2 { font-family: var(--display); font-size: var(--fs-xl); font-weight: 4
   .desktop-layout .player[data-attention=false] > .dialogue { display: none; }
   .desktop-layout .player > .now { grid-area: now; min-height: 0; margin: 8px 0 4px; }
   .desktop-layout .now h3 { font-size: 16px; -webkit-line-clamp: 2; }
+  .desktop-layout .volume-pop { --pop-h: 92px; }
   .desktop-layout .player > .progress { grid-area: progress; margin: 0 0 6px; gap: 8px; }
   .desktop-layout .progress .time { font-size: var(--fs-xs); }
   .desktop-layout .player > .transport { grid-area: transport; padding: 2px 0 10px; gap: 10px; }
   .desktop-layout .round { width: 40px; height: 40px; --icon: 18px; }
   .desktop-layout .round.side { width: 32px; height: 32px; --icon: 15px; }
   .desktop-layout .round.main { width: 52px; height: 52px; --icon: 23px; }
-  .desktop-layout .player > .fader { grid-area: fader; height: 38px; padding: 0 12px; }
   .desktop-layout .crate .tracks { max-height: 280px; min-height: 0; overflow: auto; }
 }
 /* Mini / very short desktop windows (Discord PIP). Discord keeps clicks for itself
@@ -541,7 +549,7 @@ dialog h2 { font-family: var(--display); font-size: var(--fs-xl); font-weight: 4
   .desktop-layout .state-pill { height: 20px; padding: 0 8px; font-size: var(--fs-2xs); max-width: 100%; }
   .desktop-layout .player > .now { grid-area: now; min-height: 0; margin: 0; text-align: left; align-items: flex-start; justify-content: center; gap: 8px; overflow: hidden; }
   .desktop-layout .now h3 { font-size: clamp(13px, 5.5vh, 18px); line-height: 1.35; -webkit-line-clamp: 3; }
-  .desktop-layout .now .text-button, .desktop-layout .player > .progress, .desktop-layout .player > .transport, .desktop-layout .player > .fader { display: none; }
+  .desktop-layout .now .yt-link, .desktop-layout .player > .progress, .desktop-layout .player > .transport { display: none; }
   .desktop-layout .mini-meta { display: flex; max-width: 100%; white-space: nowrap; overflow: hidden; align-items: center; gap: 4px; margin: 0; --icon: 13px; color: var(--ink-soft); font-size: var(--fs-xs); }
   .desktop-layout .mini-meta span { min-width: 0; margin-left: 2px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   .desktop-layout .player > .dialogue { display: none; }

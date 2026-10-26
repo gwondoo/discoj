@@ -1,11 +1,10 @@
-import {useRef} from 'react';
 import type {Discoj, View} from '../discoj.ts';
 import {DjBooth} from './DjBooth.tsx';
 import {Dialogue} from './Dialogue.tsx';
 import {Progress} from './Progress.tsx';
 import {displayTitle, splitPlaylist} from '../lib/title.ts';
 import {Icon} from './icons.tsx';
-import {VolumeGesture} from '../lib/volume-gesture.ts';
+import {Volume} from './Volume.tsx';
 
 const sceneLines = {
   playing: '오늘의 선곡, 신나게 틀고 있어요!',
@@ -18,9 +17,6 @@ const stateLabels = {playing: '재생 중', paused: '일시정지', loading: '�
 
 export function Player({view, app}: {view: View, app: Discoj}) {
   const {current, loading, scene, canControl, notice} = view;
-  const volumeGesture = useRef<VolumeGesture | null>(null);
-  volumeGesture.current ??= new VolumeGesture(app.setVolumeDraft, app.commitVolume, app.cancelVolumeDraft);
-  const gesture = volumeGesture.current;
   const offline = view.authenticated && !view.online;
   // Short confirmations go to the phone toast; the dialogue keeps statuses and errors.
   const spoken = notice.temporary ? '' : notice.text;
@@ -47,11 +43,15 @@ export function Player({view, app}: {view: View, app: Discoj}) {
         {view.needsReconnect && <button className="choice" onClick={app.start}>다시 연결할게!</button>}
       </Dialogue>
       <div className="now" aria-busy={Boolean(loading)}>
-        <h3 title={title}>{heading.playlist && <span className="plist"><span aria-hidden="true">플리</span><span className="sr-only">플레이리스트</span></span>}{heading.text}</h3>
+        {/* "Watch on YouTube" belongs to the song, so it sits at the end of the title. */}
+        <div className="now-title">
+          <h3 title={title}>{heading.playlist && <span className="plist"><span aria-hidden="true">플리</span><span className="sr-only">플레이리스트</span></span>}{heading.text}</h3>
+          {current && !loading && <button className="yt-link" onClick={() => app.openYouTube(current.url)} aria-label="유튜브에서 보기" title="유튜브에서 보기"><Icon name="external"/></button>}
+        </div>
         <p className="mini-meta" aria-hidden="true"><Icon name={view.volume === 0 ? 'mute' : 'volume'}/>{view.volume}%<span>· 눌러서 열면 조작할 수 있어요</span></p>
       </div>
       <Progress view={view} app={app}/>
-      {/* Secondary actions sit at the ends of the transport row, like a music app: repeat left, YouTube right. */}
+      {/* Secondary actions sit at the ends of the transport row, like a music app: repeat left, volume right. */}
       <div className="transport" role="group" aria-label="재생 컨트롤">
         <button className="round side repeat" disabled={!canControl} aria-pressed={repeatOne}
           onClick={() => app.control('repeat', repeatOne ? 'all' : 'one')}
@@ -63,22 +63,7 @@ export function Player({view, app}: {view: View, app: Discoj}) {
           ? <button className="round main" disabled={!canControl} onClick={() => app.control('pause')} aria-label="일시정지" title="일시정지"><Icon name="pause"/></button>
           : <button className="round main" disabled={!canControl} onClick={() => app.control('play')} aria-label="재생" title="재생"><Icon name="play"/></button>}
         <button className="round" disabled={!canControl} onClick={() => app.control('next')} aria-label="다음곡" title="다음곡"><Icon name="next"/></button>
-        <button className="round side" disabled={!current || Boolean(loading)} onClick={() => current && app.openYouTube(current.url)}
-          aria-label="유튜브에서 보기" title="유튜브에서 보기"><Icon name="external"/></button>
-      </div>
-      <div className="fader">
-        <label htmlFor="volume"><Icon name={view.volume === 0 ? 'mute' : 'volume'}/><span>유튜브 음량</span></label>
-        <input id="volume" type="range" min={0} max={100} step={1} value={view.volume}
-          style={{'--fill': view.volume + '%'} as React.CSSProperties}
-          disabled={!view.authenticated || !view.online || !current}
-          onChange={event => gesture.change(Number(event.target.value))}
-          onPointerDown={event => { gesture.pointerDown(); event.currentTarget.setPointerCapture(event.pointerId); }}
-          onPointerUp={() => gesture.pointerUp()}
-          onPointerCancel={() => gesture.cancel()}
-          onLostPointerCapture={() => gesture.lostCapture()}
-          onKeyUp={event => gesture.keyUp(event.key)}
-          onBlur={() => gesture.blur()}/>
-        <output htmlFor="volume">{view.volume}%</output>
+        <Volume view={view} app={app}/>
       </div>
     </section>
   );
