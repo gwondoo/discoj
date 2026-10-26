@@ -1,12 +1,29 @@
 import {useState} from 'react';
 import type {Discoj, View} from '../discoj.ts';
 import {Icon} from './icons.tsx';
+import {thumbnailUrl} from '../lib/thumbnail.ts';
 
 // Each title gets a stable sleeve color so the crate reads like a shelf of records.
 function sleeveHue(title: string) {
   let hash = 0;
   for (const char of title) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
   return hash % 360;
+}
+
+// The video thumbnail is printed on the jacket. While it loads, or if it fails,
+// the title-colored jacket underneath shows instead.
+function Sleeve({title, url}: {title: string, url: string}) {
+  const src = thumbnailUrl(url);
+  const [cover, setCover] = useState<'loading' | 'loaded' | 'failed'>(src ? 'loading' : 'failed');
+  return (
+    <span className="sleeve" data-cover={cover} style={{'--hue': sleeveHue(title)} as React.CSSProperties} aria-hidden="true">
+      <i/>
+      {src && cover !== 'failed' && <img className="cover" src={src} alt="" loading="lazy" decoding="async" draggable={false}
+        // A missing video still answers with YouTube's 120px grey placeholder; treat that as a failure.
+        onLoad={event => setCover(event.currentTarget.naturalWidth > 120 ? 'loaded' : 'failed')}
+        onError={() => setCover('failed')}/>}
+    </span>
+  );
 }
 
 export function Crate({view, app}: {view: View, app: Discoj}) {
@@ -39,7 +56,7 @@ export function Crate({view, app}: {view: View, app: Discoj}) {
             const active = current?.url === track.url;
             return (
               <li key={track.number} className={active ? 'active' : undefined} data-state={active ? current?.state : undefined}>
-                <span className="sleeve" style={{'--hue': sleeveHue(title)} as React.CSSProperties} aria-hidden="true"><i/></span>
+                <Sleeve key={track.url} title={title} url={track.url}/>
                 <button className="track-play" disabled={!view.canControl} onClick={() => app.control('select', track.number)} aria-label={title + ' 재생'}>{title}</button>
                 {active
                   ? <span className="now-badge">{!view.online ? '확인 필요' : current?.state === 'playing' ? '재생 중' : '일시정지'}</span>

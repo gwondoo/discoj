@@ -16,7 +16,9 @@ const titles = [
 
 export function showPreview(app: Discoj) {
   const mode = new URLSearchParams(location.search).get('preview');
-  const items = titles.map((title, index) => ({number: index + 1, title, url: `https://www.youtube.com/watch?v=preview${index}`}));
+  // Two real thumbnails, one missing video (grey placeholder) and the rest without an ID, to show every jacket state.
+  const previewIds = ['dQw4w9WgXcQ', 'jNQXAC9IVRw', 'AAAAAAAAAAA'];
+  const items = titles.map((title, index) => ({number: index + 1, title, url: `https://www.youtube.com/watch?v=${previewIds[index] ?? 'preview' + index}`}));
   const snapshot: Snapshot = {
     items, playlistUrl: 'https://www.youtube.com/playlist?list=preview',
     current: mode === 'waiting' ? null : {...items[1], state: mode === 'paused' ? 'paused' : 'playing', volume: 70},
