@@ -3,6 +3,7 @@ import asyncio
 import json
 import secrets
 import time
+import math
 from collections import OrderedDict
 
 import aiohttp
@@ -109,7 +110,7 @@ class Activity:
 
     def playback_state(self):
         current = self.playback.current()
-        return {'current': {key: current.get(key, 'all' if key == 'repeatMode' else None) for key in ('title', 'url', 'state', 'volume', 'repeatMode')} if current else None,
+        return {'current': {key: current.get(key, 'all' if key == 'repeatMode' else None) for key in ('title', 'url', 'state', 'volume', 'repeatMode', 'position', 'duration', 'positionAt', 'live', 'ad')} if current else None,
                 'observedAt': time.monotonic_ns() // 1000000}
 
     async def playback_events(self, request):
@@ -154,12 +155,13 @@ class Activity:
         session = await self.authenticate(request)
         body = await self.body(request)
         action, value, command_id = body.get('action'), body.get('value'), body.get('requestId')
-        if (action not in ('previous', 'next', 'pause', 'play', 'volume', 'select', 'repeat') or
+        if (action not in ('previous', 'next', 'pause', 'play', 'volume', 'select', 'repeat', 'seek') or
             not isinstance(command_id, str) or not 8 <= len(command_id) <= 100 or
+            (action == 'seek' and (type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= 1e9)) or
             (action == 'repeat' and value not in ('all', 'one')) or
             (action == 'volume' and (type(value) is not int or not 0 <= value <= 100)) or
             (action == 'select' and (type(value) is not int or value < 1)) or
-            (action not in ('volume', 'select', 'repeat') and value is not None)):
+            (action not in ('volume', 'select', 'repeat', 'seek') and value is not None)):
             raise web.HTTPBadRequest(text='조작 요청을 확인해주세요.')
         return await self.execute(session, action, value, command_id)
 

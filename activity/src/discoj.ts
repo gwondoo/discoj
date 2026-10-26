@@ -257,7 +257,7 @@ export class Discoj {
   }
 
   control = async (action: string, value?: number | 'all' | 'one') => {
-    if (this.busy || this.transition.pending || !this.online || !this.session || !this.snapshot?.current) return;
+    if (this.busy || this.transition.pending || !this.online || !this.session || !this.snapshot?.current) return false;
     if (action === 'select') {
       const track = this.snapshot.items.find(track => track.number === value);
       if (track) { this.transition.begin(track, this.snapshot.current.url); this.render(this.snapshot); }
@@ -269,10 +269,12 @@ export class Discoj {
       if (!result.ok) this.transition.clear();
       this.lastLiveAt = 0; await this.refresh(false, true);
       if (!result.ok) this.setNotice(result.message, true);
+      return result.ok;
     } catch (error) {
       this.transition.clear();
       if (this.snapshot) this.render(this.snapshot);
       this.setNotice((error as Error).name === 'TimeoutError' ? '응답이 늦어 조작 결과를 확인하지 못했어요. 현재 상태를 확인해주세요.' : (error as Error).message, true);
+      return false;
     } finally {
       this.busy = false; this.emit();
       if (this.volumeQueued) { this.volumeQueued = false; void this.commitVolume(); }
@@ -384,11 +386,11 @@ export class Discoj {
   previewCrowd(crowd: Fan[]) { this.crowd = crowd; this.emit(); }
 
   // Seek to a position in seconds; resolves false when it was not applied.
-  // TODO(Codex): send the seek command to the server and playing tab. Until then
-  // only previews apply it, so the live Activity keeps the bar disabled (no duration yet).
   seek = async (seconds: number): Promise<boolean> => {
     const current = this.snapshot?.current;
-    if (this.session !== 'preview' || !current) return false;
+    if (!current || !Number.isFinite(seconds) || seconds < 0 || !current.duration ||
+        seconds > current.duration || current.live || current.ad) return false;
+    if (this.session !== 'preview') return await this.control('seek', seconds);
     await new Promise(resolve => setTimeout(resolve, 700));
     if (new URLSearchParams(location.search).has('seekfail')) return false;
     this.render({...this.snapshot!, current: {...current, position: seconds, positionAt: Date.now()}});

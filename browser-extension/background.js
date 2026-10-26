@@ -109,7 +109,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
         await chrome.tabs.sendMessage(previous.tabId, {type: 'disconnectQueue'}).catch(() => {});
       }
       await chrome.storage.session.set({tabId: tab.id, connectionId: crypto.randomUUID(), lastSyncAt: 0, videoTitle: '', videoState: 'unavailable'});
-      await chrome.scripting.executeScript({target: {tabId: tab.id}, files: ['queue.js', 'content.js']});
+      await chrome.scripting.executeScript({target: {tabId: tab.id}, files: ['queue.js', 'progress.js', 'content.js']});
       await queued({state: 'unavailable'});
       await chrome.tabs.sendMessage(tab.id, {type: 'reportNow'});
       await syncQueue(tab.id);

@@ -8,7 +8,7 @@ function player(current = a.video_id) {
   const events = {}, navigation = [], messages = [];
   let receive, now = 100000, saved = null;
   const video = {readyState:4, paused:false, ended:false};
-  Object.defineProperty(video, 'currentTime', {get: () => 1234, set: () => {throw Error('Unexpected seek');}});
+  Object.defineProperty(video, 'currentTime', {configurable:true, get: () => 1234, set: () => {throw Error('Unexpected seek');}});
   video.play = video.pause = video.load = () => {throw Error('Unexpected playback interruption');};
   const context = {URL, Set, setTimeout, Date:{now:()=>now},
     window:{addEventListener:(event,callback)=>events[event]=callback,removeEventListener:()=>{}},
@@ -20,7 +20,7 @@ function player(current = a.video_id) {
       onMessage:{addListener:callback=>receive=callback,removeListener:()=>{}}}},
     setInterval:callback=>{events.tick=callback;},clearInterval:()=>{}}
   vm.createContext(context);
-  const inject=()=>{vm.runInContext(source('queue.js'),context);vm.runInContext(source('content.js'),context);};
+  const inject=()=>{vm.runInContext(source('queue.js'),context);vm.runInContext(source('progress.js'),context);vm.runInContext(source('content.js'),context);};
   inject();
   return {video,events,navigation,messages,context,inject,
     advance:n=>now+=n, saved:()=>saved,
@@ -43,6 +43,25 @@ function player(current = a.video_id) {
   assert.equal(restored.video.loop,true);
   assert.equal(restored.video.currentTime,1234);
   assert.equal((await repeat.control({action:'repeat',value:'invalid'})).ok,false);
+  }
+  {
+    const seeker=player(); seeker.snapshot([a,b]);
+    Object.defineProperty(seeker.video,'currentTime',{writable:true,value:1234});
+    seeker.video.duration=2000;
+    seeker.video.seekable={length:1,start:()=>0,end:()=>2000};
+    const moved=await seeker.control({action:'seek',value:100});
+    assert.equal(moved.ok,true); assert.equal(seeker.video.currentTime,100);
+    assert.equal(moved.playback.position,100); assert.equal(moved.playback.duration,2000);
+    assert.equal(seeker.video.paused,false); assert.equal(seeker.navigation.length,0);
+    seeker.video.paused=true;
+    assert.equal((await seeker.control({action:'seek',value:200})).ok,true);
+    assert.equal(seeker.video.paused,true);
+    assert.equal((await seeker.control({action:'seek',value:-1})).ok,false);
+    assert.equal((await seeker.control({action:'seek',value:2001})).ok,false);
+    seeker.video.duration=Infinity;
+    assert.equal((await seeker.control({action:'seek',value:100})).ok,false);
+    seeker.video.duration=2000; seeker.video.seekable={length:0};
+    assert.equal((await seeker.control({action:'seek',value:100})).ok,false);
   }
   const normal=player();normal.snapshot([a,b]);normal.snapshot([a,c]);
   assert.equal(normal.navigation.length,0);assert.equal(normal.video.currentTime,1234);

@@ -39,6 +39,30 @@ class ControlTests(unittest.IsolatedAsyncioTestCase):
         async with self.http.post(self.server.make_url('/playback'), json=body) as response:
             self.assertEqual(response.status, 400)
 
+    async def test_progress_and_seek_guards(self):
+        body = {'state': 'paused', 'title': 'song', 'videoId': '12345678901',
+                'session': 'browser-session', 'position': 123, 'duration': 900,
+                'positionAt': 1, 'live': False, 'ad': False}
+        async with self.http.post(self.server.make_url('/playback'), json=body) as response:
+            self.assertEqual(response.status, 204)
+        current = self.playback.current()
+        self.assertEqual(current['position'], 123)
+        self.assertGreater(current['positionAt'], 1)
+        from discoj.activity import Activity
+        for viewer in (Activity(self.playback, None, None, '', ''), Activity(self.playback, None, None, '', '')):
+            self.assertEqual(viewer.playback_state()['current']['duration'], 900)
+        for value in (-1, True, float('inf'), 901):
+            with self.assertRaises(PlaylistError):
+                await self.playback.control('seek', value)
+        for flag in ('live', 'ad'):
+            self.playback.data = dict(current, **{flag: True})
+            with self.assertRaises(PlaylistError):
+                await self.playback.control('seek', 100)
+        self.playback.data = current
+        body['position'] = -1
+        async with self.http.post(self.server.make_url('/playback'), json=body) as response:
+            self.assertEqual(response.status, 400)
+
     async def test_command_is_delivered_once_and_acknowledged(self):
         task = asyncio.create_task(self.playback.control('volume_down'))
         await asyncio.sleep(0)

@@ -195,13 +195,16 @@ class ActivityTests(unittest.IsolatedAsyncioTestCase):
         await bridge.start_server()
         extension_auth = {'Authorization': 'Bearer private-extension-token'}
         try:
-            for index, action in enumerate(('previous', 'next', 'play', 'pause', 'volume', 'select')):
+            for index, action in enumerate(('previous', 'next', 'play', 'pause', 'volume', 'select', 'seek')):
                 self.now += 2
                 body = {'action': action, 'requestId': f'control-{index}'}
                 if action == 'volume':
                     body['value'] = 71
                 if action == 'select':
                     body['value'] = 15
+                if action == 'seek':
+                    self.playback.data['duration'] = 900
+                    body['value'] = 123.5
                 task = asyncio.create_task(self.http.post(self.server.make_url('/api/control'), headers=headers, json=body))
                 command = None
                 for _ in range(100):

@@ -6,6 +6,7 @@ import hashlib
 import json
 import re
 import time
+import math
 from aiohttp import web
 
 
@@ -59,7 +60,19 @@ class Playback:
                 session = data.get('session', '')
                 if not isinstance(session, str) or len(session) > 100:
                     raise ValueError()
-                data = {'state': data['state'], 'title': data['title'].strip(), 'volume': round(volume), 'session': session, 'repeatMode': repeat_mode,
+                progress = {}
+                if 'position' in data:
+                    position, duration = data['position'], data.get('duration')
+                    if type(position) not in (int, float) or not math.isfinite(position) or position < 0:
+                        raise ValueError()
+                    if duration is not None and (type(duration) not in (int, float) or not math.isfinite(duration) or duration <= 0):
+                        raise ValueError()
+                    if any(type(data.get(flag, False)) is not bool for flag in ('live', 'ad')):
+                        raise ValueError()
+                    progress = {'position': min(position, duration) if duration else position,
+                                'duration': duration, 'positionAt': round(time.time() * 1000),
+                                'live': data.get('live', False), 'ad': data.get('ad', False)}
+                data = {**progress, 'state': data['state'], 'title': data['title'].strip(), 'volume': round(volume), 'session': session, 'repeatMode': repeat_mode,
                         'url': 'https://www.youtube.com/watch?v=' + data['videoId']}
             else:
                 data = None
@@ -70,8 +83,10 @@ class Playback:
 
     async def control(self, action, value=None):
         from .youtube import PlaylistError
-        if action not in ('previous', 'next', 'pause', 'play', 'volume_up', 'volume_down', 'volume', 'select', 'repeat'):
+        if action not in ('previous', 'next', 'pause', 'play', 'volume_up', 'volume_down', 'volume', 'select', 'repeat', 'seek'):
             raise PlaylistError('지원하지 않는 조작이에요.')
+        if action == 'seek' and (type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= 1e9):
+            raise PlaylistError('재생 위치를 확인해주세요.')
         if action == 'repeat' and value not in ('all', 'one'):
             raise PlaylistError('반복 모드를 확인해주세요.')
         if action == 'volume' and (type(value) is not int or not 0 <= value <= 100):
@@ -84,6 +99,9 @@ class Playback:
             current = self.current()
             if not current or not current.get('session'):
                 raise PlaylistError('연결된 재생 탭을 확인할 수 없어요. 확장 프로그램 연결을 확인해주세요.')
+            if action == 'seek' and (current.get('live') or current.get('ad') or
+                    not current.get('duration') or value > current['duration']):
+                raise PlaylistError('현재 영상은 구간 이동을 지원하지 않아요.')
             if action == 'select':
                 items = await self.playlist.browser_queue()
                 target = next((item for item in items if item['number'] == value), None)

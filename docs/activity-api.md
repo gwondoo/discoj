@@ -74,3 +74,6 @@ Activity sessions last up to 8 hours, capped by the Discord access token lifetim
 
 ### Repeat mode
 `current.repeatMode` is `all` (default) or `one`, reported by the selected extension tab and shared by state and playback events. `POST /api/control` accepts `{action:"repeat",value:"all"|"one",requestId}`. The extension persists the confirmed mode locally and applies the media loop flag without seeking, playing, pausing, or navigating. Manual next/previous/select remain unchanged. No YouTube Data API calls are made.
+
+### Progress and seek
+The selected tab reports `position` (seconds), finite positive `duration` or null, `live`, and `ad`. The bridge stamps `positionAt` with server epoch milliseconds. State and playback events expose these fields to all viewers; UI extrapolates between the existing 5-second reports. `seek` accepts a finite nonnegative `value` in seconds within duration. Live/ads/unknown duration and unseekable ranges are rejected. Commands retain the video/session fence, serialization and idempotency. Seeking changes only currentTime and preserves paused/playing state; no YouTube Data API requests.

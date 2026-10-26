@@ -30,6 +30,7 @@ export function Progress({view, app}: {view: View, app: Discoj}) {
   const [failed, setFailed] = useState(false);
   const draftRef = useRef<number | null>(null);
   draftRef.current = draft;
+  const draftUrl = useRef<string | undefined>(undefined);
   const urlRef = useRef(current?.url);
   urlRef.current = current?.url;
 
@@ -57,12 +58,13 @@ export function Progress({view, app}: {view: View, app: Discoj}) {
 
   const gesture = useRef<VolumeGesture | null>(null);
   gesture.current ??= new VolumeGesture(
-    next => setDraft(next),
+    next => { if (draftRef.current === null) draftUrl.current = urlRef.current; setDraft(next); },
     async () => {
       const target = draftRef.current;
       setDraft(null);
       const url = urlRef.current;
       if (target === null || !url) return;
+      if (draftUrl.current !== url) { setFailed(true); return; }
       setFailed(false);
       setPending({target, url, since: Date.now()});
       if (!await app.seek(target)) { setPending(null); setFailed(true); }
