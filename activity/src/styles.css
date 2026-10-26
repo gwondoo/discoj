@@ -179,6 +179,10 @@ h1, h2, h3, p { margin: 0; }
 .dialogue.error p { color: var(--red-dark); }
 .nametag { position: absolute; left: 20px; top: -14px; padding: 3px 14px; border-radius: var(--r-pill); rotate: -4deg; font-family: var(--display); font-size: var(--fs-md); color: #6a3f06; background: var(--orange); box-shadow: 0 3px 0 #c9801e; }
 .dialogue.error .nametag { color: var(--on-accent); background: var(--red); box-shadow: 0 3px 0 var(--red-dark); }
+/* Everyday line: a low one-row bubble with the name tag inline. Reactions and errors use the full box. */
+.player > .dialogue[data-quiet] { flex-direction: row; justify-content: flex-start; align-items: center; gap: 10px; min-height: 0; margin-top: 20px; padding: 8px 20px 8px 14px; font-size: var(--fs-md); }
+.dialogue[data-quiet] .nametag { position: static; flex: none; padding: 1px 12px; font-size: var(--fs-sm); }
+.dialogue[data-quiet] .next { display: none; }
 .next { position: absolute; right: 20px; bottom: 6px; font-size: var(--fs-2xs); color: var(--orange); animation: nudge .8s ease-in-out infinite alternate; }
 .choice { position: relative; display: block; margin-top: 10px; padding: 9px 20px 9px 32px; border: 0; border-radius: var(--r-pill); font-family: var(--display); font-size: var(--fs-base); color: var(--ink); background: var(--button); box-shadow: 0 3px 0 var(--shadow); text-align: left; }
 .choice::before { content: "▶"; position: absolute; left: 13px; top: 50%; translate: 0 -50%; font-size: var(--fs-2xs); color: var(--orange); opacity: 0; }
@@ -208,6 +212,8 @@ h1, h2, h3, p { margin: 0; }
 .repeat-one { position: absolute; top: -4px; right: -4px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-family: var(--display); font-size: var(--fs-2xs); font-weight: 400; line-height: 1; color: var(--on-accent); background: var(--mint); box-shadow: 0 0 0 2px var(--card); }
 
 .fader { --icon: 18px; display: flex; align-items: center; gap: 12px; height: 50px; padding: 0 18px; border-radius: var(--r-pill); background: var(--inset); }
+/* The speaker icon is the label; the words stay for screen readers. */
+.fader label span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .fader label { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-size: var(--fs-sm); color: var(--ink-soft); white-space: nowrap; }
 .fader output { min-width: 40px; text-align: right; font-family: var(--display); font-size: var(--fs-md); color: var(--ink); font-variant-numeric: tabular-nums; }
 .fader input { flex: 1; min-width: 40px; height: 30px; margin: 0; background: none; appearance: none; -webkit-appearance: none; cursor: pointer; }
@@ -272,7 +278,7 @@ h1, h2, h3, p { margin: 0; }
 .request button:active:enabled { translate: 0 2px; box-shadow: 0 1px 0 var(--yellow-dark); }
 
 .tracks { list-style: none; margin: 0 -8px; padding: 0 0 4px; max-height: 520px; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
-.tracks li { position: relative; display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 6px 6px 6px 10px; border-radius: var(--r-md); }
+.tracks li { position: relative; display: flex; align-items: center; gap: 12px; min-height: 66px; padding: 6px 6px 6px 10px; border-radius: var(--r-md); }
 .tracks li + li::before { content: ""; position: absolute; left: 16px; right: 16px; top: -1px; border-top: 2px dashed var(--line); }
 .tracks li:has(.track-play:enabled):hover { background: var(--hover-row); }
 .tracks li.active { background: var(--mint-soft); }
@@ -291,6 +297,10 @@ h1, h2, h3, p { margin: 0; }
 .track-play { flex: 1; min-width: 0; margin: 6px 0; padding: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; border: 0; background: none; text-align: left; font-size: var(--fs-md); line-height: 1.5; color: var(--ink); overflow-wrap: anywhere; }
 .track-play::before { content: ""; position: absolute; inset: 0; border-radius: var(--r-md); }
 .tracks li.active .track-play { font-family: var(--display); font-size: var(--fs-base); color: var(--mint-dark); }
+/* "플리" badge replaces leading playlist labels in titles (splitPlaylist). */
+.plist { display: inline-block; margin-right: 6px; padding: 0 7px; border-radius: var(--r-pill); font-family: var(--display); font-size: var(--fs-2xs); font-weight: 400; line-height: 1.7; vertical-align: .15em; color: var(--mint-dark); background: var(--mint-soft); }
+.tracks li.active .plist, .now h3 .plist { background: var(--button); }
+.now h3 .plist { font-size: var(--fs-xs); vertical-align: .3em; }
 .now-badge { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: var(--r-pill); font-family: var(--display); font-size: var(--fs-xs); white-space: nowrap; color: var(--on-accent); background: var(--mint); }
 .play-hint { font-family: var(--display); font-size: var(--fs-xs); color: var(--mint-dark); white-space: nowrap; opacity: 0; pointer-events: none; }
 .tracks li:hover .play-hint, .tracks li:focus-within .play-hint { opacity: 1; }
@@ -404,6 +414,8 @@ dialog h2 { font-family: var(--display); font-size: var(--fs-xl); font-weight: 4
   .player > .card-head { grid-area: head; }
   .player > .booth { grid-area: booth; height: auto; min-height: 180px; margin-top: 10px; }
   .player > .dialogue { grid-area: dialogue; }
+  /* Dialogue sits beside the stage here: the tail points left at K.K. */
+  .player > .dialogue::before { left: -6px; top: 50%; translate: -50% -50%; rotate: -90deg; }
   .player > .now { grid-area: now; }
   .player > .progress { grid-area: progress; }
   .player > .transport { grid-area: transport; }
@@ -499,7 +511,9 @@ dialog h2 { font-family: var(--display); font-size: var(--fs-xl); font-weight: 4
   .desktop-layout .player { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "head head" "booth ." "booth dialogue" "booth now" "booth progress" "booth transport" "booth fader" "booth ."; grid-template-rows: auto 1fr auto auto auto auto auto 1fr; gap: 0 18px; }
   .desktop-layout .player > .card-head { grid-area: head; }
   .desktop-layout .player > .booth { grid-area: booth; height: clamp(110px, calc(100dvh - 140px), 220px); min-height: 0; margin-top: 10px; }
-  .desktop-layout .player > .dialogue { grid-area: dialogue; margin-top: 18px; padding: 10px 14px; }
+  .desktop-layout .player > .dialogue { grid-area: dialogue; margin-top: 18px; padding: 16px 14px 10px; }
+  .desktop-layout .player > .dialogue:has(.dialogue-dismiss) { padding-right: 66px; }
+  .desktop-layout .player > .dialogue::before { left: -6px; top: 50%; translate: -50% -50%; rotate: -90deg; }
   .desktop-layout .player[data-attention=false] > .dialogue { display: none; }
   .desktop-layout .player > .now { grid-area: now; min-height: 0; margin: 8px 0 4px; }
   .desktop-layout .now h3 { font-size: 16px; -webkit-line-clamp: 2; }

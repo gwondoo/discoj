@@ -27,10 +27,12 @@ function Marked({text, full, highlight}: {text: string, full: string, highlight?
   return <>{text.slice(0, start)}<em>{text.slice(start, end)}</em>{text.slice(end)}</>;
 }
 
-export function Dialogue({speaker, text, highlight, error, children, onDismiss}: {
+export function Dialogue({speaker, text, highlight, quiet, error, children, onDismiss}: {
   speaker: string;
   text: string;
   highlight?: string;
+  // Everyday status line: a low one-line bubble. Reactions and errors get the full box.
+  quiet?: boolean;
   error?: boolean;
   children?: React.ReactNode;
   onDismiss?: () => void;
@@ -38,7 +40,7 @@ export function Dialogue({speaker, text, highlight, error, children, onDismiss}:
   const {shown, done} = useTypewriter(text);
   if (!text) return null;
   return (
-    <div className={'dialogue' + (error ? ' error' : '')}>
+    <div className={'dialogue' + (error ? ' error' : '')} data-quiet={quiet || undefined}>
       {onDismiss && <button type="button" className="dialogue-dismiss" onClick={onDismiss} aria-label="오류 메시지 닫기">닫기</button>}
       <span className="nametag">{speaker}</span>
       <p role="status" aria-live="polite">

@@ -2,7 +2,7 @@ import {useState} from 'react';
 import type {Discoj, View} from '../discoj.ts';
 import {Icon} from './icons.tsx';
 import {thumbnailUrl} from '../lib/thumbnail.ts';
-import {displayTitle} from '../lib/title.ts';
+import {displayTitle, splitPlaylist} from '../lib/title.ts';
 
 // Each title gets a stable sleeve color so the crate reads like a shelf of records.
 function sleeveHue(title: string) {
@@ -54,13 +54,15 @@ export function Crate({view, app}: {view: View, app: Discoj}) {
         <ol className="tracks">
           {items.map(track => {
             const title = displayTitle(track.title);
+            const {playlist, text} = splitPlaylist(title);
             const active = current?.url === track.url;
             return (
               <li key={track.number} className={active ? 'active' : undefined} data-state={active ? current?.state : undefined}>
                 <Sleeve key={track.url} title={title} url={track.url}/>
-                <button className="track-play" disabled={!view.canControl} onClick={() => app.control('select', track.number)} aria-label={title + ' 재생'}>{title}</button>
+                <button className="track-play" disabled={!view.canControl} onClick={() => app.control('select', track.number)} aria-label={title + ' 재생'}>{playlist && <span className="plist" aria-hidden="true">플리</span>}{text}</button>
+                {/* The mint row and spinning record already say "playing"; a badge only for states they can't show. */}
                 {active
-                  ? <span className="now-badge">{!view.online ? '확인 필요' : current?.state === 'playing' ? '재생 중' : '일시정지'}</span>
+                  ? (!view.online || current?.state !== 'playing') && <span className="now-badge" data-state={view.online ? 'paused' : 'unknown'}>{!view.online ? '확인 필요' : '일시정지'}</span>
                   : <span className="play-hint" aria-hidden="true">재생</span>}
                 <button className="track-delete" disabled={!view.canEdit || view.deleting} onClick={() => app.askDelete(track)} aria-label={title + ' 삭제'} title="삭제"><Icon name="trash"/></button>
               </li>

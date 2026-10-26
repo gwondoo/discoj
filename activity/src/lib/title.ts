@@ -5,3 +5,13 @@
 export function displayTitle(raw: string | null | undefined, fallback = '제목을 확인할 수 없는 영상'): string {
   return (raw ?? '').normalize('NFKC').replace(/\s+/g, ' ').trim() || fallback;
 }
+
+// Leading "playlist" labels in their many spellings ([Playlist], Playlist |, playlist l, 플리 ·).
+// They become a small badge so the line starts with what the mix is about.
+const playlistPrefix = /^\s*[\[(【]?\s*(?:playlist|플레이리스트|플리)(?![A-Za-z0-9가-힣])\s*[\])】]?\s*(?:[|｜│ㅣ:·\-–—]|l(?=\s))?\s*/i;
+
+export function splitPlaylist(title: string): {playlist: boolean, text: string} {
+  const match = title.match(playlistPrefix);
+  const rest = match ? title.slice(match[0].length).trim() : '';
+  return match && rest ? {playlist: true, text: rest} : {playlist: false, text: title};
+}

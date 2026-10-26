@@ -3,7 +3,7 @@ import type {Discoj, View} from '../discoj.ts';
 import {DjBooth} from './DjBooth.tsx';
 import {Dialogue} from './Dialogue.tsx';
 import {Progress} from './Progress.tsx';
-import {displayTitle} from '../lib/title.ts';
+import {displayTitle, splitPlaylist} from '../lib/title.ts';
 import {Icon} from './icons.tsx';
 import {VolumeGesture} from '../lib/volume-gesture.ts';
 
@@ -27,6 +27,7 @@ export function Player({view, app}: {view: View, app: Discoj}) {
   const reaction = !spoken && !offline ? view.reaction : null;
   const line = spoken || (offline ? '서버랑 연결이 끊겼어요. 다시 연결하는 중이에요.' : reaction ? reaction.text : view.authenticated ? sceneLines[scene] : '');
   const title = loading ? displayTitle(loading.title, '선택한 곡') : current ? displayTitle(current.title) : '연결된 유튜브 재생 탭이 없어요';
+  const heading = splitPlaylist(title);
   const playing = current?.state === 'playing';
   const repeatOne = current?.repeatMode === 'one';
 
@@ -41,12 +42,12 @@ export function Player({view, app}: {view: View, app: Discoj}) {
         </div>
       </div>
       <DjBooth scene={scene}/>
-      <Dialogue speaker="K.K." text={line} highlight={reaction?.highlight} error={notice.error && Boolean(spoken)}
+      <Dialogue speaker="K.K." text={line} quiet={!spoken && !reaction && !offline} highlight={reaction?.highlight} error={notice.error && Boolean(spoken)}
         onDismiss={notice.error && !view.needsReconnect ? app.dismissNotice : undefined}>
         {view.needsReconnect && <button className="choice" onClick={app.start}>다시 연결할게!</button>}
       </Dialogue>
       <div className="now" aria-busy={Boolean(loading)}>
-        <h3 title={title}>{title}</h3>
+        <h3 title={title}>{heading.playlist && <span className="plist"><span aria-hidden="true">플리</span><span className="sr-only">플레이리스트</span></span>}{heading.text}</h3>
         <p className="mini-meta" aria-hidden="true"><Icon name={view.volume === 0 ? 'mute' : 'volume'}/>{view.volume}%<span>· 눌러서 열면 조작할 수 있어요</span></p>
       </div>
       <Progress view={view} app={app}/>
