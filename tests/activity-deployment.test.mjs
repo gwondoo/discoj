@@ -19,6 +19,12 @@ try {
   syncLive(source, live, () => reloads++);
   assert.equal(reloads, before, 'unchanged config must not reload');
   assert.ok(existsSync(join(live, 'dist/assets/old.js')), 'keep old clients assets');
+  writeFileSync(join(source, 'dist/assets/next-hash.js'), 'next build');
+  writeFileSync(join(source, 'dist/index.html'), 'next page');
+  syncLive(source, live, () => reloads++);
+  assert.equal(readFileSync(join(live, 'dist/assets/next-hash.js'), 'utf8'), 'next build');
+  assert.equal(readFileSync(join(live, 'dist/index.html'), 'utf8'), 'next page');
+  assert.ok(existsSync(join(live, 'dist/assets/old.js')));
   writeFileSync(join(source, 'nginx.conf'), 'config 2');
   syncLive(source, live, () => { assert.equal(readFileSync(target, 'utf8'), 'config 2'); reloads++; });
   assert.equal(statSync(target).ino, inode, 'preserve file bind mount inode');

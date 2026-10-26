@@ -1,5 +1,5 @@
 // Preserve the live bind mounts and old hashed assets without restarting services.
-import {existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, mkdtempSync, renameSync, rmSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {resolve} from 'node:path';
@@ -15,7 +15,29 @@ function copyInPlace(source, target) {
 
 export function syncLive(source, live, reload) {
   mkdirSync(live, {recursive: true});
-  copyInPlace(resolve(source, 'dist'), resolve(live, 'dist'));
+  const dist = resolve(live, 'dist');
+  mkdirSync(dist, {recursive: true});
+  // Replace child directory entries so Docker Desktop refreshes renamed host paths.
+  // Merge previous hashed assets to keep already-open clients working.
+  for (const entry of readdirSync(resolve(source, 'dist'), {withFileTypes: true})) {
+    if (!entry.isDirectory()) continue;
+    const target = resolve(dist, entry.name);
+    const staged = mkdtempSync(resolve(dist, '.deploy-'));
+    if (existsSync(target)) copyInPlace(target, staged);
+    copyInPlace(resolve(source, 'dist', entry.name), staged);
+    const previousDir = staged + '-previous';
+    if (existsSync(target)) renameSync(target, previousDir);
+    try { renameSync(staged, target); }
+    catch (error) {
+      if (existsSync(previousDir)) renameSync(previousDir, target);
+      throw error;
+    }
+    if (existsSync(previousDir)) rmSync(previousDir, {recursive: true, force: true});
+  }
+  // Publish the entry point only after every dependency is present.
+  for (const entry of readdirSync(resolve(source, 'dist'), {withFileTypes: true})) {
+    if (entry.isFile()) writeFileSync(resolve(dist, entry.name), readFileSync(resolve(source, 'dist', entry.name)));
+  }
   const target = resolve(live, 'nginx.conf');
   const next = readFileSync(resolve(source, 'nginx.conf'));
   const previous = existsSync(target) ? readFileSync(target) : null;

@@ -264,3 +264,5 @@ npm run build      # tsc + vite build → dist/
 - Compose도 운영 배포 경로 `activity-test/dist`, `activity-test/nginx.conf`를 사용해 소스 경로와 분리해요.
 - 빌드는 배포 폴더를 자동 생성하고 dist와 Nginx 설정을 동기화해요. 설정은 파일 inode를 유지해 쓰고 검증 후 graceful reload하며, 검증 실패 시 이전 설정을 복원해요.
 - 시작은 `sh scripts/start-activity.sh`로 실행해요. `--no-recreate`로 기존 웹 서버와 임시 터널을 유지하며, 새로운 환경에서는 서비스를 생성해요.
+
+- Docker Desktop가 경로 변경 후 새 하위 파일을 놓치는 경우를 방지하도록 배포 하위 폴더를 준비한 뒤 교체하고, 이전 해시 자산을 보존해요. HTML은 의존 파일을 준비한 뒤 마지막으로 반영해요.
