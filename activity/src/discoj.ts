@@ -255,7 +255,7 @@ export class Discoj {
     }
   }
 
-  control = async (action: string, value?: number) => {
+  control = async (action: string, value?: number | 'all' | 'one') => {
     if (this.busy || this.transition.pending || !this.online || !this.session || !this.snapshot?.current) return;
     if (action === 'select') {
       const track = this.snapshot.items.find(track => track.number === value);
@@ -381,6 +381,28 @@ export class Discoj {
   previewNotice(text: string, error = false, temporary = false) { this.setNotice(text, error, temporary); }
   previewReaction(title: string) { this.react(reaction(addLines[0], title)); }
   previewCrowd(crowd: Fan[]) { this.crowd = crowd; this.emit(); }
+
+  // Seek to a position in seconds; resolves false when it was not applied.
+  // TODO(Codex): send the seek command to the server and playing tab. Until then
+  // only previews apply it, so the live Activity keeps the bar disabled (no duration yet).
+  seek = async (seconds: number): Promise<boolean> => {
+    const current = this.snapshot?.current;
+    if (this.session !== 'preview' || !current) return false;
+    await new Promise(resolve => setTimeout(resolve, 700));
+    if (new URLSearchParams(location.search).has('seekfail')) return false;
+    this.render({...this.snapshot!, current: {...current, position: seconds, positionAt: Date.now()}});
+    return true;
+  };
+
+  // Preview stand-in for the periodic playback report (re-reads the advancing position).
+  previewReport() {
+    const current = this.snapshot?.current;
+    if (!current || current.position === undefined) return;
+    const now = Date.now();
+    const elapsed = current.state === 'playing' && current.positionAt ? (now - current.positionAt) / 1000 : 0;
+    const position = Math.min(current.duration ?? Infinity, current.position + elapsed);
+    this.render({...this.snapshot!, current: {...current, position, positionAt: now}});
+  }
 
   preview(snapshot: Snapshot, loading?: Track) {
     this.session = 'preview'; this.online = true; this.notice = {text: '', error: false, temporary: false};

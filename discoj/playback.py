@@ -50,13 +50,16 @@ class Playback:
                     raise ValueError()
                 if not isinstance(data.get('videoId'), str) or not re.fullmatch(r'[A-Za-z0-9_-]{11}', data['videoId']):
                     raise ValueError()
+                repeat_mode = data.get('repeatMode', 'all')
+                if repeat_mode not in ('all', 'one'):
+                    raise ValueError()
                 volume = data.get('volume', 100)
                 if type(volume) not in (int, float) or not 0 <= volume <= 100:
                     raise ValueError()
                 session = data.get('session', '')
                 if not isinstance(session, str) or len(session) > 100:
                     raise ValueError()
-                data = {'state': data['state'], 'title': data['title'].strip(), 'volume': round(volume), 'session': session,
+                data = {'state': data['state'], 'title': data['title'].strip(), 'volume': round(volume), 'session': session, 'repeatMode': repeat_mode,
                         'url': 'https://www.youtube.com/watch?v=' + data['videoId']}
             else:
                 data = None
@@ -67,8 +70,10 @@ class Playback:
 
     async def control(self, action, value=None):
         from .youtube import PlaylistError
-        if action not in ('previous', 'next', 'pause', 'play', 'volume_up', 'volume_down', 'volume', 'select'):
+        if action not in ('previous', 'next', 'pause', 'play', 'volume_up', 'volume_down', 'volume', 'select', 'repeat'):
             raise PlaylistError('지원하지 않는 조작이에요.')
+        if action == 'repeat' and value not in ('all', 'one'):
+            raise PlaylistError('반복 모드를 확인해주세요.')
         if action == 'volume' and (type(value) is not int or not 0 <= value <= 100):
             raise PlaylistError('음량은 0~100 사이로 입력해주세요.')
         if action == 'select' and (type(value) is not int or value < 1):

@@ -2,6 +2,7 @@ import {useRef} from 'react';
 import type {Discoj, View} from '../discoj.ts';
 import {DjBooth} from './DjBooth.tsx';
 import {Dialogue} from './Dialogue.tsx';
+import {Progress} from './Progress.tsx';
 import {Icon} from './icons.tsx';
 import {VolumeGesture} from '../lib/volume-gesture.ts';
 
@@ -26,6 +27,7 @@ export function Player({view, app}: {view: View, app: Discoj}) {
   const line = spoken || (offline ? '서버랑 연결이 끊겼어요. 다시 연결하는 중이에요.' : reaction ? reaction.text : view.authenticated ? sceneLines[scene] : '');
   const title = loading ? loading.title || '선택한 곡' : current?.title || '연결된 유튜브 재생 탭이 없어요';
   const playing = current?.state === 'playing';
+  const repeatOne = current?.repeatMode === 'one';
 
 
   return (
@@ -45,14 +47,22 @@ export function Player({view, app}: {view: View, app: Discoj}) {
       <div className="now" aria-busy={Boolean(loading)}>
         <h3 title={title}>{title}</h3>
         <p className="mini-meta" aria-hidden="true"><Icon name={view.volume === 0 ? 'mute' : 'volume'}/>{view.volume}%<span>· 눌러서 열면 조작할 수 있어요</span></p>
-        {current && !loading && <button className="text-button" onClick={() => app.openYouTube(current.url)}>유튜브에서 보기 <Icon name="external"/></button>}
       </div>
+      <Progress view={view} app={app}/>
+      {/* Secondary actions sit at the ends of the transport row, like a music app: repeat left, YouTube right. */}
       <div className="transport" role="group" aria-label="재생 컨트롤">
+        <button className="round side repeat" disabled={!canControl} aria-pressed={repeatOne}
+          onClick={() => app.control('repeat', repeatOne ? 'all' : 'one')}
+          aria-label={repeatOne ? '한 곡 반복 중' : '전체 반복 중'} title={repeatOne ? '한 곡 반복 중 · 누르면 전체 반복' : '전체 반복 중 · 누르면 한 곡 반복'}>
+          <Icon name="repeat"/>{repeatOne && <b className="repeat-one" aria-hidden="true">1</b>}
+        </button>
         <button className="round" disabled={!canControl} onClick={() => app.control('previous')} aria-label="이전곡" title="이전곡"><Icon name="previous"/></button>
         {playing
           ? <button className="round main" disabled={!canControl} onClick={() => app.control('pause')} aria-label="일시정지" title="일시정지"><Icon name="pause"/></button>
           : <button className="round main" disabled={!canControl} onClick={() => app.control('play')} aria-label="재생" title="재생"><Icon name="play"/></button>}
         <button className="round" disabled={!canControl} onClick={() => app.control('next')} aria-label="다음곡" title="다음곡"><Icon name="next"/></button>
+        <button className="round side" disabled={!current || Boolean(loading)} onClick={() => current && app.openYouTube(current.url)}
+          aria-label="유튜브에서 보기" title="유튜브에서 보기"><Icon name="external"/></button>
       </div>
       <div className="fader">
         <label htmlFor="volume"><Icon name={view.volume === 0 ? 'mute' : 'volume'}/><span>유튜브 음량</span></label>

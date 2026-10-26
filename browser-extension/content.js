@@ -21,6 +21,11 @@
   };
   let navigating = false, connected = false, snapshot = null, received = 0, panel = null, nativePanel = null;
   let disconnected = false, transition = false, pending = null;
+  let repeatMode = 'all';
+  const applyRepeat = () => {
+    const video = document.querySelector('video.html5-main-video');
+    if (video && connected && ownsPage()) video.loop = repeatMode === 'one';
+  };
   const queue = new globalThis.DiscoJQueue();
   const listeners = [];
   const currentId = () => new URL(location.href).searchParams.get('v');
@@ -83,7 +88,7 @@
     root.append(style);
     const heading = document.createElement('h3'); heading.textContent = `DiscoJ · ${queue.items.length}곡`; root.append(heading);
     const info = document.createElement('p');
-    info.textContent = disconnected ? '봇 연결 끊김 · 마지막 동기화 목록' : '전체 반복 · 추가·삭제 자동 반영'; root.append(info);
+    info.textContent = disconnected ? '봇 연결 끊김 · 마지막 동기화 목록' : `${repeatMode === 'one' ? '한 곡 반복' : '전체 반복'} · 추가·삭제 자동 반영`; root.append(info);
     if (!queue.items.some(item => item.video_id === currentId())) {
       const removed = document.createElement('p'); removed.textContent = '현재 영상은 목록에서 제거됐어요. 재생은 끝까지 유지해요.'; root.append(removed);
     }
@@ -102,7 +107,8 @@
     const video = document.querySelector('video.html5-main-video');
     const title = document.querySelector('ytd-watch-metadata h1 yt-formatted-string')?.textContent?.trim();
     const valid = !navigating && location.pathname === '/watch' && /^[\w-]{11}$/.test(id || '') && video && video.readyState >= 2 && title;
-    const data = valid ? {state: video.paused || video.ended ? 'paused' : 'playing', title: title.slice(0, 500), videoId: id, volume: Math.round(video.muted ? 0 : video.volume * 100)} : {state: 'unavailable'};
+    applyRepeat();
+    const data = valid ? {state: video.paused || video.ended ? 'paused' : 'playing', title: title.slice(0, 500), videoId: id, repeatMode, volume: Math.round(video.muted ? 0 : video.volume * 100)} : {state: 'unavailable'};
     chrome.runtime.sendMessage({type: 'report', data}).catch(() => {});
     if (connected && Date.now() - received > 30000 && !disconnected) { disconnected = true; render(); }
   }
@@ -112,7 +118,13 @@
     const video = document.querySelector('video.html5-main-video');
     if (!video || video.readyState < 2) return {ok: false, error: '재생 가능한 영상을 찾지 못했어요.'};
     let message;
-    if (command.action === 'pause' || command.action === 'play') {
+    if (command.action === 'repeat') {
+      if (!['all', 'one'].includes(command.value)) return {ok: false, error: '반복 모드를 확인해주세요.'};
+      const result = await chrome.runtime.sendMessage({type: 'setRepeat', value: command.value});
+      if (!result?.ok) return {ok: false, error: '반복 모드를 저장하지 못했어요.'};
+      repeatMode = command.value; pending = null; applyRepeat(); render();
+      message = repeatMode === 'one' ? '한 곡 반복으로 설정했어요.' : '전체 반복으로 설정했어요.';
+    } else if (command.action === 'pause' || command.action === 'play') {
       pending = null;
       if (command.action === 'pause') video.pause();
       else await video.play();
@@ -148,7 +160,7 @@
     } else return {ok: false, error: '지원하지 않는 조작이에요.'};
     report();
     return {ok: true, message, playback: {state: video.paused || video.ended ? 'paused' : 'playing',
-      videoId: currentId(), volume: Math.round(video.muted ? 0 : video.volume * 100),
+      videoId: currentId(), repeatMode, volume: Math.round(video.muted ? 0 : video.volume * 100),
       title: document.querySelector('ytd-watch-metadata h1 yt-formatted-string')?.textContent?.trim()?.slice(0, 500) || '현재 영상'}};
   }
   function onMessage(message, sender, respond) {
@@ -158,9 +170,9 @@
       return true;
     }
     if (message.type === 'reportNow') report();
-    if (message.type === 'disconnectQueue') { saveCursor(); connected = false; snapshot = null; pending = null; restore(); }
+    if (message.type === 'disconnectQueue') { saveCursor(); connected = false; const video = document.querySelector('video.html5-main-video'); if (video) video.loop = false; snapshot = null; pending = null; restore(); }
     if (message.type === 'queueSnapshot' && message.data && Array.isArray(message.data.items)) {
-      const changed = snapshot?.revision !== message.data.revision || !connected || disconnected || queue.current !== currentId();
+      const changed = repeatMode !== (message.data.repeatMode || 'all') || snapshot?.revision !== message.data.revision || !connected || disconnected || queue.current !== currentId();
       const first = !connected;
       if (first) {
         queue.restore(message.cursor, message.data.playlistId, currentId());
@@ -170,11 +182,14 @@
           pending = {direction: 'next', auto: true, createdAt: message.requestedAt || Date.now()};
         }
       }
+      if (first) repeatMode = message.data.repeatMode === 'one' ? 'one' : 'all';
       connected = true; received = Date.now(); disconnected = false; snapshot = message.data;
+      applyRepeat();
       queue.update(snapshot, currentId());
       saveCursor();
       applyPending(message.requestedAt || 0);
       if (changed || !panel?.isConnected) render();
+      if (first) report();
     }
   }
   chrome.runtime.onMessage.addListener(onMessage);
@@ -186,6 +201,11 @@
   }, true);
   // Capture the natural end before target/document listeners use YouTube's stale queue.
   listen(window, 'ended', event => {
+    if (connected && ownsPage() && repeatMode === 'one' && event.target === document.querySelector('video.html5-main-video')) {
+      event.stopImmediatePropagation();
+      const video = event.target; video.currentTime = 0; video.play().then(report).catch(report);
+      return;
+    }
     if (!active() || event.target !== document.querySelector('video.html5-main-video') ||
         document.querySelector('.html5-video-player.ad-showing')) return;
     event.stopImmediatePropagation();

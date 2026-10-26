@@ -26,7 +26,8 @@ async function syncQueue(tabId, force = false) {
     const data = await response.json();
     const latest = await chrome.storage.session.get(['tabId', 'connectionId']);
     if (latest.tabId !== tabId || latest.connectionId !== selected.connectionId) return;
-    const {queueCursor} = await chrome.storage.local.get('queueCursor');
+    const {queueCursor, repeatMode} = await chrome.storage.local.get(['queueCursor', 'repeatMode']);
+    data.repeatMode = repeatMode === 'one' ? 'one' : 'all';
     await chrome.tabs.sendMessage(tabId, {type: 'queueSnapshot', data, requestedAt,
       cursor: queueCursor?.tabId === tabId ? queueCursor : null});
     await chrome.storage.session.set({lastSyncAt: Date.now(), lastSyncConnection: selected.connectionId});
@@ -91,6 +92,10 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
       await queued({...message.data, session: selected.connectionId});
       await pollControl(tabId);
       await syncQueue(tabId);
+    } else if (message.type === 'setRepeat') {
+      const selected = await chrome.storage.session.get('tabId');
+      if (sender.tab?.id !== selected.tabId || sender.frameId !== 0 || !['all', 'one'].includes(message.value)) throw new Error('반복 모드를 저장하지 못했어요.');
+      await chrome.storage.local.set({repeatMode: message.value});
     } else if (message.type === 'saveCursor' || message.type === 'syncNow') {
       const {tabId} = await chrome.storage.session.get('tabId');
       if (sender.tab?.id !== tabId || sender.frameId !== 0) return;

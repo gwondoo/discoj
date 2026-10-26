@@ -24,12 +24,26 @@ function player(current = a.video_id) {
   inject();
   return {video,events,navigation,messages,context,inject,
     advance:n=>now+=n, saved:()=>saved,
-    snapshot:(items,options={})=>receive({type:'queueSnapshot',data:{playlistId:'playlist',revision:JSON.stringify(items),items},requestedAt:options.requestedAt??now,cursor:options.cursor}),
+    snapshot:(items,options={})=>receive({type:'queueSnapshot',data:{playlistId:'playlist',revision:JSON.stringify(items),items,repeatMode:options.repeatMode || 'all'},requestedAt:options.requestedAt??now,cursor:options.cursor}),
     end:()=>{video.ended=true;events.ended({target:video,stopImmediatePropagation:()=>{}});},
     control:command=>new Promise(resolve=>receive({type:'control',command:{videoId:current,expiresAt:200000,...command}},null,resolve)),
     disconnect:()=>receive({type:'disconnectQueue'})};
 }
 (async()=>{
+  {
+  const repeat=player(); repeat.snapshot([a,b]);
+  const repeated=await repeat.control({action:'repeat',value:'one'});
+  assert.equal(repeated.ok,true); assert.equal(repeated.playback.repeatMode,'one');
+  assert.equal(repeat.video.loop,true); assert.equal(repeat.video.currentTime,1234);
+  assert.equal(repeat.navigation.length,0);
+  repeat.snapshot([a,b]); assert.equal(repeat.video.loop,true, 'late snapshot cannot revert repeat command');
+  const all=await repeat.control({action:'repeat',value:'all'});
+  assert.equal(all.ok,true); assert.equal(repeat.video.loop,false);
+  const restored=player(); restored.snapshot([a,b],{repeatMode:'one'});
+  assert.equal(restored.video.loop,true);
+  assert.equal(restored.video.currentTime,1234);
+  assert.equal((await repeat.control({action:'repeat',value:'invalid'})).ok,false);
+  }
   const normal=player();normal.snapshot([a,b]);normal.snapshot([a,c]);
   assert.equal(normal.navigation.length,0);assert.equal(normal.video.currentTime,1234);
   normal.end();assert.equal(normal.navigation.length,0); // Never select from the old snapshot at end.

@@ -71,3 +71,6 @@ Duplicate request IDs return the original result without repeating the write.
 스트림 연결이 정상일 때 목록 갱신은 `GET /api/state?queueOnly=1`을 사용해 `current`와 `observedAt`을 중복 전송하지 않습니다. 스트림이 끊기면 전체 상태 조회로 복구합니다. 서버는 250ms 간격으로 메모리의 공개 상태만 비교하며, 브라우저의 동일 상태 보고는 변경 이벤트로 보내지 않습니다.
 
 Activity sessions last up to 8 hours, capped by the Discord access token lifetime. Channel membership is rechecked every 60 seconds when used. Sessions remain in memory, so restarting the bot invalidates existing sessions.
+
+### Repeat mode
+`current.repeatMode` is `all` (default) or `one`, reported by the selected extension tab and shared by state and playback events. `POST /api/control` accepts `{action:"repeat",value:"all"|"one",requestId}`. The extension persists the confirmed mode locally and applies the media loop flag without seeking, playing, pausing, or navigating. Manual next/previous/select remain unchanged. No YouTube Data API calls are made.

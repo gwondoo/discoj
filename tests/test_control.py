@@ -22,6 +22,23 @@ class ControlTests(unittest.IsolatedAsyncioTestCase):
         await self.http.close()
         await self.server.close()
 
+    async def test_repeat_validation_and_shared_report(self):
+        with self.assertRaises(PlaylistError):
+            await self.playback.control('repeat', 'invalid')
+        body = {'state': 'playing', 'title': 'song', 'videoId': '12345678901',
+                'session': 'browser-session', 'repeatMode': 'one'}
+        async with self.http.post(self.server.make_url('/playback'), json=body) as response:
+            self.assertEqual(response.status, 204)
+        self.assertEqual(self.playback.current()['repeatMode'], 'one')
+        from discoj.activity import Activity
+        viewer_a = Activity(self.playback, None, None, '', '')
+        viewer_b = Activity(self.playback, None, None, '', '')
+        self.assertEqual(viewer_a.playback_state()['current']['repeatMode'], 'one')
+        self.assertEqual(viewer_b.playback_state()['current']['repeatMode'], 'one')
+        body['repeatMode'] = 'bad'
+        async with self.http.post(self.server.make_url('/playback'), json=body) as response:
+            self.assertEqual(response.status, 400)
+
     async def test_command_is_delivered_once_and_acknowledged(self):
         task = asyncio.create_task(self.playback.control('volume_down'))
         await asyncio.sleep(0)
