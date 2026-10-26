@@ -34,6 +34,7 @@ export function Dialogue({speaker, text, error, children, onDismiss}: {
       <span className="nametag">{speaker}</span>
       <p role="status" aria-live="polite">
         <span className="sr-only">{text}</span>
+        <span className="ghost" aria-hidden="true">{text}</span>
         <span aria-hidden="true">{shown}</span>
       </p>
       {done && children}

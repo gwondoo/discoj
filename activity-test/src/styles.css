@@ -66,7 +66,7 @@ h1, h2, h3, p { margin: 0; }
   --tint: #ffffff; --light-l: #fff6e0; --light-r: #fff6e0; --light: .1;
   --sky-top: #84cdef; --sky-bottom: #d9f2f4; --sea: #6fc6e0; --sea-hi: #b8eaf2;
 }
-.booth[data-sky=morning] { --glow: .1; --tint: #fff3e2; --light-l: #ffd59a; --light-r: #fff0d0; --light: .18; --sky-top: #ffcfa3; --sky-bottom: #f8ecd6; --sea: #8fcfd9; --sea-hi: #ffe6c2; --scene: sepia(.12) brightness(1.02); }
+.booth[data-sky=morning] { --glow: .1; --tint: #fff3e2; --light-l: #ffd59a; --light-r: #fff0d0; --light: .18; --sky-top: #ffb98a; --sky-bottom: #ffe4c6; --sea: #9fd3d6; --sea-hi: #ffd9b0; --scene: sepia(.2) saturate(1.05) brightness(1.03); }
 .booth[data-sky=evening] { --glow: .4; --tint: #f6cdb0; --light-l: #ffb27a; --light-r: #ff8f6b; --light: .26; --sky-top: #ea8f80; --sky-bottom: #ffd2a6; --sea: #e59a8c; --sea-hi: #ffd0a0; --scene: sepia(.3) saturate(1.15) brightness(.92) hue-rotate(-8deg); }
 .booth[data-sky=night] { --glow: .7; --tint: #767eb6; --light-l: #6ff2ff; --light-r: #ff84d8; --light: .22; --sky-top: #1a2350; --sky-bottom: #3d4a84; --sea: #2a3a72; --sea-hi: #56679f; --scene: brightness(.48) saturate(.75) hue-rotate(18deg); }
 .sky { position: absolute; inset: 0; z-index: -5; background: linear-gradient(var(--sky-top), var(--sky-bottom) 60%); transition: background .8s; }
@@ -171,7 +171,10 @@ h1, h2, h3, p { margin: 0; }
   background: #fffbe8; box-shadow: 0 4px 0 #ecdcb0, 0 12px 24px -12px #7a5a2a70;
   font-family: var(--display); font-size: 15px; line-height: 1.5; color: var(--ink);
 }
-.dialogue p { overflow-wrap: anywhere; }
+.dialogue p { display: grid; overflow-wrap: anywhere; }
+/* Typed text sits over the full line so the box keeps its final size while typing. */
+.dialogue p > [aria-hidden] { grid-area: 1 / 1; }
+.dialogue .ghost { visibility: hidden; }
 .dialogue .choice { margin-top: 8px; }
 .dialogue.error p { color: var(--red-dark); }
 .nametag { position: absolute; left: 20px; top: -14px; padding: 3px 14px; border-radius: 999px; rotate: -4deg; font-family: var(--display); font-size: 14px; color: #6a3f06; background: var(--orange); box-shadow: 0 3px 0 #c9801e; }
@@ -407,7 +410,7 @@ dialog h2 { font-family: var(--display); font-size: 18px; font-weight: 400; }
   .desktop-layout .topbar { height: 40px; grid-template-columns: 1fr auto; }
   .desktop-layout .clock { display: none; }
   .desktop-layout .workspace { grid-template-columns: minmax(0, 1fr); }
-  .desktop-layout .player { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "head head" "booth dialogue" "booth now" "booth transport" "booth fader"; grid-template-rows: auto auto 1fr auto auto; gap: 0 18px; }
+  .desktop-layout .player { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "head head" "booth ." "booth dialogue" "booth now" "booth transport" "booth fader" "booth ."; grid-template-rows: auto 1fr auto auto auto auto 1fr; gap: 0 18px; }
   .desktop-layout .player > .card-head { grid-area: head; }
   .desktop-layout .player > .booth { grid-area: booth; height: clamp(110px, calc(100dvh - 140px), 220px); min-height: 0; margin-top: 10px; }
   .desktop-layout .player > .dialogue { grid-area: dialogue; margin-top: 18px; padding: 10px 14px; }
