@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {PlaybackConnection} from '../activity-test/src/lib/playback-connection.ts';
+import {PlaybackConnection} from '../activity/src/lib/playback-connection.ts';
 let now = 0;
 const health = new PlaybackConnection(() => now);
 assert.equal(health.healthy, false);

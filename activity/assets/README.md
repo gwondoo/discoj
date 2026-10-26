@@ -22,7 +22,7 @@ stack without offsets:
 | `kk-logo.webp` | White mask of the front KK logo, tinted as cyan neon in CSS |
 
 ```sh
-python3 activity-test/assets/dj/build-layers.py
+python3 activity/assets/dj/build-layers.py
 ```
 
 Confirmed shared playback drives the stage (`src/components/DjBooth.tsx`):

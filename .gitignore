@@ -19,3 +19,6 @@ data/
 *.tif
 *.tiff
 *.svg
+
+# Deployment mirror for existing running Activity bind mounts
+/activity-test

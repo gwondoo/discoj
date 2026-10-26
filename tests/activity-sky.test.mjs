@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import ts from '../activity-test/node_modules/typescript/lib/typescript.js';
+import ts from '../activity/node_modules/typescript/lib/typescript.js';
 // Execute the real skyAt declaration without importing React/TSX into Node.
-const file = await readFile(new URL('../activity-test/src/components/DjBooth.tsx', import.meta.url), 'utf8');
+const file = await readFile(new URL('../activity/src/components/DjBooth.tsx', import.meta.url), 'utf8');
 const ast = ts.createSourceFile('DjBooth.tsx', file, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 const declaration = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'skyAt');
 assert.ok(declaration);

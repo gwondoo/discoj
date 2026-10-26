@@ -9,7 +9,7 @@ WIDTH and every layer shares that canvas, so they stack without offsets.
   kk-leds.webp     only the lit LEDs, faded in and out while music plays
   kk-logo.webp     white mask of the front "KK" logo, tinted as neon in CSS
 
-Run: python3 activity-test/assets/dj/build-layers.py  (needs Pillow)
+Run: python3 activity/assets/dj/build-layers.py  (needs Pillow)
 """
 import colorsys
 from pathlib import Path

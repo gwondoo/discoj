@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import {Discoj} from '../activity-test/src/discoj.ts';
-import {PlaybackConnection} from '../activity-test/src/lib/playback-connection.ts';
+import {Discoj} from '../activity/src/discoj.ts';
+import {PlaybackConnection} from '../activity/src/lib/playback-connection.ts';
 const originalFetch = globalThis.fetch;
 const app = new Discoj();
 let now = 0;

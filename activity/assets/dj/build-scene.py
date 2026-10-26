@@ -1,7 +1,7 @@
 """Trim the Nookipedia scenery icons in assets/source/scene/ into public/scene/.
 
 Each icon is cropped to its visible pixels so CSS can place it by its base.
-Run: python3 activity-test/assets/dj/build-scene.py  (needs Pillow)
+Run: python3 activity/assets/dj/build-scene.py  (needs Pillow)
 """
 from pathlib import Path
 

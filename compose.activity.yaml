@@ -1,14 +1,17 @@
+# Preserve the running project's identity to avoid replacing the live tunnel.
 name: discoj-activity-test
 services:
   activity:
+    container_name: discoj-activity
     image: nginx:alpine
     restart: unless-stopped
     volumes:
-      - ./activity-test/dist:/usr/share/nginx/html:ro
-      - ./activity-test/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./activity/dist:/usr/share/nginx/html:ro
+      - ./activity/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
       - "127.0.0.1:18767:80"
   tunnel:
+    container_name: discoj-activity-tunnel
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     command: tunnel --no-autoupdate --url http://activity:80

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {VolumeGesture} from '../activity-test/src/lib/volume-gesture.ts';
+import {VolumeGesture} from '../activity/src/lib/volume-gesture.ts';
 const drafts=[],commits=[],discards=[];
 let value;
 const gesture=new VolumeGesture(v=>{value=v;drafts.push(v);},()=>commits.push(value),()=>discards.push(true));

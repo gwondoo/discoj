@@ -1,0 +1,35 @@
+/* DiscoJ design tokens: the island NookPhone look (cream paper, brown ink, mint and yellow).
+   Components in styles.css use only these names; see DESIGN.md "디자인 시스템".
+   Time-of-day scene colors (--sky-*, --sea*, --tint, --light-*, --glow, --scene) live on
+   .booth[data-sky=…] in styles.css because they change with the hour. */
+:root {
+  /* Surfaces */
+  --paper: #f1e7c8; --paper-dot: #e7dbb6;
+  --card: #fffaeb; --inset: #f5ebcf; --line: #eadcb6; --shadow: #e2d1a3;
+  --bubble: #fffbe8; --bubble-shadow: #ecdcb0;
+  --track: #e4d6ae;
+  --hover: #fff6dc; --hover-row: #fbf1d4;
+  --drop: #7a5a2a; --backdrop: #4a3b2466;
+  /* Ink */
+  --ink: #6b5739; --ink-soft: #8d7957; --muted: #b09e7c;
+  --on-accent: #fff; --on-yellow: #6a4f12;
+  --button: #fff;
+  /* Accents */
+  --mint: #3fbfac; --mint-dark: #2b9b8a; --mint-soft: #d9f3eb;
+  --yellow: #f7cf5c; --yellow-dark: #d6a72c; --yellow-hover: #fbd96f;
+  --orange: #f0a33c;
+  --red: #e2705c; --red-dark: #bf5241; --red-soft: #fde4dc;
+
+  /* Type: Jua for headings, labels and buttons; Gowun Dodum for running text. */
+  --display: "Jua", "Gowun Dodum", -apple-system, "Apple SD Gothic Neo", sans-serif;
+  --body: "Gowun Dodum", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --fs-2xs: 11px; --fs-xs: 12px; --fs-sm: 13px; --fs-md: 14px; --fs-base: 15px;
+  --fs-lg: 17px; --fs-xl: 18px; --fs-2xl: 21px; --fs-3xl: 26px;
+
+  /* Shape */
+  --r-sm: 12px; --r-md: 18px; --r-lg: 22px; --r-xl: 28px; --r-pill: 999px;
+
+  /* Layout (overridden per layout in styles.css) */
+  --stage-h: 300px;
+  --gap: 20px; --pad: 20px; --head-h: 64px;
+}

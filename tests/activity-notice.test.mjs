@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {Discoj} from '../activity-test/src/discoj.ts';
+import {Discoj} from '../activity/src/discoj.ts';
 const app=new Discoj();
 app.preview({current:{title:'song',url:'https://www.youtube.com/watch?v=12345678901',state:'playing',volume:40},items:[],playlistUrl:'https://www.youtube.com/playlist?list=test'});
 app.previewNotice('temporary control error',true);

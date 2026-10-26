@@ -4,6 +4,7 @@ import {Discoj} from './discoj.ts';
 import {App} from './App.tsx';
 import '@fontsource/jua';
 import '@fontsource/gowun-dodum';
+import './tokens.css';
 import './styles.css';
 import {desktopLayout} from './lib/layout-client.ts';
 

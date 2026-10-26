@@ -1,10 +1,10 @@
 # 디스코제이 Activity 기획·디자인 명세
 
-Discord Activity 화면(`activity-test/`)의 현재 기획과 디자인 기준이에요.
+Discord Activity 화면(`activity/`)의 현재 기획과 디자인 기준이에요.
 화면이나 에셋을 바꾸기 전에 이 문서를 먼저 읽고, 바꾼 뒤에는 이 문서도 함께 고쳐 주세요.
 코드와 이 문서가 다르면 **코드가 기준**이고, 문서를 코드에 맞게 고쳐야 해요.
 
-마지막 갱신: 2026-10-26 (오전 하늘 대비 강화, 낮은 창 조작부 세로 가운데 정렬, 대화창 타이핑 중 크기 고정)
+마지막 갱신: 2026-10-26 (디자인 토큰을 `src/tokens.css`로 분리하고 디자인 시스템 절 추가)
 
 ## 1. 콘셉트
 
@@ -121,20 +121,63 @@ Discord Activity 화면(`activity-test/`)의 현재 기획과 디자인 기준�
 - 크기는 무대 높이 단위(`cqh`)로 정해서 화면 크기가 달라도 구도가 같아요.
 - 새 장식을 넣을 때는 배경이 진짜 투명한지 먼저 확인해요. 예를 들어 `NH Cedar Tree (South Seasonal)`은 배경이 칠해져 있어서 못 써요.
 
-## 6. 테마 토큰
+## 6. 디자인 시스템 (토큰과 컴포넌트)
 
-`src/styles.css` 맨 위 `:root`에 있어요.
+토큰은 **`src/tokens.css` 한 곳**에만 정의하고, `src/main.tsx`에서 `styles.css`보다 먼저 불러와요. 컴포넌트 스타일(`src/styles.css`)에는 색·글자 크기·모서리를 숫자로 직접 쓰지 말고 토큰 이름을 써 주세요. 새 값이 필요하면 먼저 `tokens.css`에 이름을 붙여 추가하고 이 표도 고쳐 주세요.
+예외는 두 가지예요. 시간대마다 바뀌는 무대 색(`.booth[data-sky=…]`, 2절)과 섬 소품의 그림 색(잔디·음표·별 등)은 장면 그림이라 `styles.css`에 그대로 둬요.
 
-| 용도 | 값 |
-|---|---|
-| 바탕 / 카드 / 안쪽 면 | `--paper #f1e7c8` / `--card #fffaeb` / `--inset #f5ebcf` |
-| 글씨 | `--ink #6b5739`, 보조 `--ink-soft`, 흐림 `--muted` |
-| 강조 | 민트 `--mint #3fbfac`, 노랑 `--yellow #f7cf5c`, 주황 `--orange` (이름표), 빨강 `--red` (오류·삭제) |
-| 글꼴 | 제목·버튼·대화 `Jua`, 본문 `Gowun Dodum` (앱에 포함, 외부에서 불러오지 않음) |
-| 아이콘 | `src/components/icons.tsx`. 크기는 위치마다 `--icon` 변수 하나로 정해요 |
+### 색
+| 역할 | 토큰 | 값 |
+|---|---|---|
+| 바탕 / 바탕 점무늬 | `--paper` / `--paper-dot` | `#f1e7c8` / `#e7dbb6` |
+| 카드 / 안쪽 면 / 구분선 | `--card` / `--inset` / `--line` | `#fffaeb` / `#f5ebcf` / `#eadcb6` |
+| 통통한 그림자 (카드·버튼 아래) | `--shadow` | `#e2d1a3` |
+| 대화창 / 대화창 그림자 | `--bubble` / `--bubble-shadow` | `#fffbe8` / `#ecdcb0` |
+| 흰 버튼 면 / 눌림 전 호버 / 목록 줄 호버 | `--button` / `--hover` / `--hover-row` | `#fff` / `#fff6dc` / `#fbf1d4` |
+| 음량 바 빈 부분 | `--track` | `#e4d6ae` |
+| 번진 그림자 바탕색 / 대화상자 뒤 배경 | `--drop` / `--backdrop` | `#7a5a2a` (투명도는 `color-mix`로) / `#4a3b2466` |
+| 글씨 / 보조 / 흐림 | `--ink` / `--ink-soft` / `--muted` | `#6b5739` / `#8d7957` / `#b09e7c` |
+| 강조색 위 글씨 / 노랑 위 글씨 | `--on-accent` / `--on-yellow` | `#fff` / `#6a4f12` |
+| 민트 (주 강조·재생·지금 곡) | `--mint` / `--mint-dark` / `--mint-soft` | `#3fbfac` / `#2b9b8a` / `#d9f3eb` |
+| 노랑 (신청·일시정지) | `--yellow` / `--yellow-dark` / `--yellow-hover` | `#f7cf5c` / `#d6a72c` / `#fbd96f` |
+| 주황 (K.K. 이름표) | `--orange` | `#f0a33c` |
+| 빨강 (오류·삭제) | `--red` / `--red-dark` / `--red-soft` | `#e2705c` / `#bf5241` / `#fde4dc` |
+
+- `-dark` 색은 그 색 버튼의 **아래 그림자**에 써요. `-soft` 색은 배지나 배경처럼 옅은 면에 써요.
+- 다크 모드는 없어요. Discord 안에서도 항상 크림색 종이 화면이에요.
+
+### 글꼴과 글자 크기
+- `--display` `Jua`: 제목, 버튼, 배지, 대화창, 숫자. `--body` `Gowun Dodum`: 본문과 입력칸. 두 글꼴 모두 앱에 포함돼 있어 외부에서 불러오지 않아요.
+- 크기: `--fs-2xs 11` · `--fs-xs 12` · `--fs-sm 13` · `--fs-md 14`(기본) · `--fs-base 15` · `--fs-lg 17` · `--fs-xl 18` · `--fs-2xl 21`(곡 제목) · `--fs-3xl 26`
+- 소품 장식(큰 음표, 물음표)과 작은 창 전용 미세 조정 몇 개만 숫자 크기를 그대로 써요.
+
+### 모양
+- 모서리: `--r-sm 12`(로고, 미니 대화창) · `--r-md 18`(곡 목록 줄, 모바일 무대) · `--r-lg 22`(무대, 알림) · `--r-xl 28`(카드) · `--r-pill 999`(배지, 버튼, 입력칸). 동그란 버튼은 `50%`.
+- 그림자: 아래로 딱 떨어지는 **통통한 그림자**(`0 Npx 0 var(--shadow 또는 -dark)`)가 기본이에요. 카드는 6px, 큰 버튼은 4–5px, 작은 요소는 1–3px예요. 떠 있는 카드에만 `--drop` 번진 그림자를 더해요.
+- 간격과 크기: `--pad`(카드 안쪽), `--gap`(카드 사이), `--head-h`(상단바), `--stage-h`(무대 높이). 반응형 규칙(7절)이 레이아웃마다 이 값을 바꿔요.
+- 아이콘: `src/components/icons.tsx`. 크기는 위치마다 `--icon` 변수 하나로 정해요.
+
+### 컴포넌트 규칙
+| 컴포넌트 | 클래스 | 규칙 |
+|---|---|---|
+| 카드 | `.card` | `--card` 면, `--r-xl`, 6px 통통한 그림자 + 번진 그림자 |
+| 카드 제목줄 | `.card-head` | 아이콘 + `--display` 제목 왼쪽, 배지나 텍스트 버튼은 오른쪽 |
+| 상태 배지 | `.state-pill`, `.now-badge`, `.listeners` | 알약 모양. 재생은 민트, 일시정지는 노랑+`--on-yellow`, 곡 불러오는 중은 주황, 연결 대기는 기본(`--inset`·`--ink-soft`) |
+| 동그란 버튼 | `.round`, `.round.main` | 흰 면(`--button`) + 아래 그림자. 주 버튼(재생)만 민트 면에 크게 |
+| 주 행동 버튼 | `.request button` | 노랑 알약 + `--yellow-dark` 그림자. 그림자만큼 위로 올려 가운데 맞춤 |
+| 텍스트 버튼 | `.text-button` | 배경 없음, `--ink-soft`, 터치 환경에서는 높이 40px |
+| 대화창 | `.dialogue` + `.nametag` | `--bubble` 면, 울퉁불퉁한 모서리, 주황 이름표(오류는 빨강). 선택지는 `.choice` |
+| 알림 | `.toast` | 위에서 내려오는 너굴폰 알림. 짧은 성공 메시지에만 써요 |
+| 음량 바 | `.fader` | `--inset` 알약 안에 민트 채움 + `--track` 빈 부분, 흰 손잡이 |
 
 - 버튼은 아래 그림자가 있는 통통한 모양이에요. **그림자가 있는 버튼은 그림자만큼 위로 올려서 가운데를 맞춰요**(신청 버튼, 재생 버튼).
+- 포커스는 모든 버튼과 입력칸에 민트 3px 테두리(`:focus-visible`)로 보여요.
 - 게임 전용 글꼴이나 UI 이미지는 쓰지 않아요.
+
+### 줄바꿈
+- 전체에 `word-break: keep-all`을 적용해요. 한국어가 글자 중간이 아니라 **어절 사이**에서 줄바꿈돼요. 링크나 영상 ID처럼 띄어쓰기 없이 긴 문자열은 `overflow-wrap: anywhere`로 끊어서 화면 밖으로 넘치지 않게 해요.
+- 제목(`h1–h3`, 삭제 확인 곡 제목)은 `text-wrap: balance`로 줄 길이를 고르게 맞춰요. 본문·목록·곡 제목은 `text-wrap: pretty`로 마지막 줄에 한 단어만 남지 않게 해요.
+- 배지, 버튼 문구, 미니 화면 안내처럼 짧은 한 줄짜리는 `white-space: nowrap`으로 유지해요. 넘치면 말줄임(…)이나 줄 수 제한(`line-clamp`)으로 처리해요.
 
 ## 7. 반응형
 
@@ -182,7 +225,7 @@ Discord가 넘겨주는 `platform=desktop`일 때만 `<html>`에 `desktop-layout
 ## 9. 작업 방법
 
 ```sh
-cd activity-test
+cd activity
 npm ci
 npm run dev        # http://localhost:5174/?preview
 npm run build      # tsc + vite build → dist/
@@ -195,3 +238,9 @@ npm run build      # tsc + vite build → dist/
   - `&toast`, `&error`: 알림과 오류 대화창
 - 테스트: 저장소 루트에서 `for f in tests/activity-*.test.mjs; do node "$f"; done` (연결 상태 테스트 포함)
 - 화면을 바꾼 뒤에는 최소한 데스크톱(1280×720), 휴대폰(390×844, 320×640), 가로 모드(780×380)와 네 가지 시간대를 확인해요.
+
+### 운영 경로 정리 (2026-10-26)
+- UI 폴더는 `activity/`, Compose 파일은 `compose.activity.yaml`이에요.
+- 기존 실행 중인 바인드 마운트를 위해 루트 `activity-test/`에 Git에서 제외한 배포 복사본을 유지해요. 빌드 후 자동으로 동기화해요.
+- 컨테이너 표시 이름은 `discoj-activity`, `discoj-activity-tunnel`이에요. Docker 내부 프로젝트 ID는 기존 연결 보존을 위해 유지해요.
+- 디자인 반영은 `activity/`에서 빌드만 수행하고, 실행 중인 터널은 재시작하지 않아요.

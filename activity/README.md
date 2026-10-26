@@ -20,13 +20,13 @@ Images are local-only and excluded from Git. On a new machine, first copy the
 internal image folders described in [assets/README.md](assets/README.md).
 
 ```sh
-cd activity-test
+cd activity
 npm ci
 npm run build
 cd ..
 docker compose up -d --build
-docker compose -f compose.activity-test.yaml up -d
-docker compose -f compose.activity-test.yaml logs tunnel
+docker compose -f compose.activity.yaml up -d
+docker compose -f compose.activity.yaml logs tunnel
 ```
 
 Add `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` to the root `.env`.
@@ -53,7 +53,7 @@ hostname before ongoing operation. Remove its Discord mapping before stopping
 or discarding the tunnel.
 
 ```sh
-docker compose -f compose.activity-test.yaml down
+docker compose -f compose.activity.yaml down
 ```
 
 ## Verification
@@ -107,3 +107,10 @@ the grace period and require reconnecting immediately.
 node tests/activity-connection.test.mjs
 node tests/activity-connection-integration.test.mjs
 ```
+
+## Live deployment compatibility
+
+The container names are `discoj-activity` and `discoj-activity-tunnel`.
+The Compose project identity remains `discoj-activity-test` to preserve the existing live deployment.
+The ignored root `activity-test/` deployment mirror preserves existing bind mounts. The build syncs it automatically when present.
+Design updates need only a build; do not restart the tunnel because its temporary hostname changes.
