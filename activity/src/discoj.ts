@@ -4,6 +4,7 @@ import {PlaybackConnection} from './lib/playback-connection.ts';
 import {PlaybackTransition, type PendingTrack} from './lib/playback-transition.ts';
 import {playbackScene} from './lib/playback-scene.ts';
 import type {Current, Scene, Snapshot, Track} from './lib/types.ts';
+import {displayTitle} from './lib/title.ts';
 
 const clientId = '1562673893205086288';
 
@@ -15,7 +16,7 @@ export interface Reaction { text: string; highlight: string }
 const addLines = ['오, %s! 좋은 곡이네. 상자에 넣어둘게요.', '%s? 센스 있는데요! 곧 틀어볼게요.', '%s 신청 받았어요. 다들 좋아하겠어요!'];
 const pick = (lines: string[]) => lines[Math.floor(Math.random() * lines.length)];
 function reaction(template: string, title: string): Reaction {
-  const highlight = `'${title}'`;
+  const highlight = `'${displayTitle(title)}'`;
   return {text: template.replace('%s', highlight), highlight};
 }
 

@@ -1,5 +1,6 @@
 import {useEffect, useRef} from 'react';
 import type {Discoj, View} from '../discoj.ts';
+import {displayTitle} from '../lib/title.ts';
 
 // Styled like a villager conversation: a question line plus answer choices.
 export function DeleteDialog({view, app}: {view: View, app: Discoj}) {
@@ -21,7 +22,7 @@ export function DeleteDialog({view, app}: {view: View, app: Discoj}) {
       <div className="dialogue">
         <span className="nametag">K.K.</span>
         <h2 id="delete-heading">이 레코드를 상자에서 뺄까요?</h2>
-        <p className="delete-title">「{target?.title?.trim() || '제목을 확인할 수 없는 영상'}」</p>
+        <p className="delete-title">「{displayTitle(target?.title)}」</p>
         {playingNow && <p className="delete-note">지금 나오는 곡은 끝까지 틀어줄게요.</p>}
         {view.deleteError && <p className="delete-error" role="status">{view.deleteError}</p>}
       </div>

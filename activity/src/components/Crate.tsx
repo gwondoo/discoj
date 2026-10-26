@@ -2,6 +2,7 @@ import {useState} from 'react';
 import type {Discoj, View} from '../discoj.ts';
 import {Icon} from './icons.tsx';
 import {thumbnailUrl} from '../lib/thumbnail.ts';
+import {displayTitle} from '../lib/title.ts';
 
 // Each title gets a stable sleeve color so the crate reads like a shelf of records.
 function sleeveHue(title: string) {
@@ -52,7 +53,7 @@ export function Crate({view, app}: {view: View, app: Discoj}) {
       {items.length > 0 ? (
         <ol className="tracks">
           {items.map(track => {
-            const title = track.title?.trim() || '제목을 확인할 수 없는 영상';
+            const title = displayTitle(track.title);
             const active = current?.url === track.url;
             return (
               <li key={track.number} className={active ? 'active' : undefined} data-state={active ? current?.state : undefined}>

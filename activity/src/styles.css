@@ -287,7 +287,8 @@ h1, h2, h3, p { margin: 0; }
 .sleeve[data-cover=loading]::after { background: linear-gradient(100deg, #0000 30%, #fff8 50%, #0000 70%) 0 0 / 300% 100%, hsl(var(--hue) 62% 74%); animation: shimmer 1.4s linear infinite; }
 @keyframes shimmer { from { background-position: 100% 0, 0 0; } to { background-position: -50% 0, 0 0; } }
 .tracks li.active[data-state=playing] .sleeve i { animation: spin 1.8s linear infinite; }
-.track-play { flex: 1; min-width: 0; padding: 6px 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; border: 0; background: none; text-align: left; font-size: var(--fs-md); line-height: 1.5; color: var(--ink); overflow-wrap: anywhere; }
+/* Spacing is margin, not padding: with line-clamp, padding would show a sliver of the third line. */
+.track-play { flex: 1; min-width: 0; margin: 6px 0; padding: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; border: 0; background: none; text-align: left; font-size: var(--fs-md); line-height: 1.5; color: var(--ink); overflow-wrap: anywhere; }
 .track-play::before { content: ""; position: absolute; inset: 0; border-radius: var(--r-md); }
 .tracks li.active .track-play { font-family: var(--display); font-size: var(--fs-base); color: var(--mint-dark); }
 .now-badge { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: var(--r-pill); font-family: var(--display); font-size: var(--fs-xs); white-space: nowrap; color: var(--on-accent); background: var(--mint); }

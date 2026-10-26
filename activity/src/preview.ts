@@ -5,10 +5,11 @@ import type {Snapshot} from './lib/types.ts';
 // Add &sky=morning|day|evening|night, &crowd=0..7, &toast or &error to check those looks.
 // Progress: &progress=short|live|ad|unknown (default a 2:28:24 video at 24:15), &seekfail to see a failed seek.
 const titles = [
-  "NewJeans (뉴진스) 'Supernatural' Official MV",
+  // Decorated letters and a three-line title check NFKC display and the two-line clamp.
+  '𝐏𝐥𝐚𝐲𝐥𝐢𝐬𝐭 우리 모두가 사랑한 재즈 피아니스트 빌에반스 | Bill Evans, A Jazz Pianist Loved by All of Us 🎹',
   'IU 아이유 - Love wins all MV',
   'DAY6 (데이식스) "한 페이지가 될 수 있게" Lyric Video',
-  'Lo-fi hip hop radio - beats to relax/study to',
+  '[Playlist] 도파민이 필요할 땐 이 노동요를 들어주세요🔥🔥🔥 | 하루종일 틀어놔도 질리지 않는 둠칫한 국내 플레이리스트 | 작업할 때 듣는 음악',
   "aespa 에스파 'Supernova' MV",
   '잔나비 - 주저하는 연인들을 위해',
   'Official髭男dism - Pretender［Official Video］',
