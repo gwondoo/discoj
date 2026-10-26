@@ -433,7 +433,7 @@ dialog h2 { font-family: var(--display); font-size: var(--fs-xl); font-weight: 4
   .desktop-layout .player[data-attention=false] > .dialogue { display: none; }
 }
 /* Short popups: stage left, current track and controls right; crate below. */
-@media (min-width: 561px) and (max-height: 560px) {
+@media (min-width: 420px) and (max-height: 560px) {
   .desktop-layout { --head-h: 40px; --pad: 12px; --gap: 12px; }
   .desktop-layout #root { display: block; height: auto; max-width: 1160px; padding: 0 14px 14px; }
   .desktop-layout .topbar { height: 40px; grid-template-columns: 1fr auto; }
