@@ -43,6 +43,7 @@ export function Player({view, app}: {view: View, app: Discoj}) {
       </Dialogue>
       <div className="now" aria-busy={Boolean(loading)}>
         <h3 title={title}>{title}</h3>
+        <p className="mini-meta" aria-hidden="true"><Icon name={view.volume === 0 ? 'mute' : 'volume'}/>{view.volume}%<span>· 눌러서 열면 조작할 수 있어요</span></p>
         {current && !loading && <button className="text-button" onClick={() => app.openYouTube(current.url)}>유튜브에서 보기 <Icon name="external"/></button>}
       </div>
       <div className="transport" role="group" aria-label="재생 컨트롤">
