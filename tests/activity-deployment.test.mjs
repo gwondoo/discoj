@@ -13,6 +13,7 @@ try {
   let reloads = 0;
   syncLive(source, live, () => reloads++);
   assert.equal(readFileSync(join(live, 'dist/index.html'), 'utf8'), 'new page');
+  assert.equal(statSync(join(live, 'dist/assets')).mode & 0o777, 0o755, 'nginx workers can traverse deployed assets');
   const target = join(live, 'nginx.conf'), inode = statSync(target).ino;
   writeFileSync(join(live, 'dist/assets/old.js'), 'old client');
   const before = reloads;

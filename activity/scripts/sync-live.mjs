@@ -1,5 +1,5 @@
 // Preserve the live bind mounts and old hashed assets without restarting services.
-import {existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, mkdtempSync, renameSync, rmSync} from 'node:fs';
+import {existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, chmodSync, mkdtempSync, renameSync, rmSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {resolve} from 'node:path';
@@ -23,6 +23,7 @@ export function syncLive(source, live, reload) {
     if (!entry.isDirectory()) continue;
     const target = resolve(dist, entry.name);
     const staged = mkdtempSync(resolve(dist, '.deploy-'));
+    chmodSync(staged, 0o755);
     if (existsSync(target)) copyInPlace(target, staged);
     copyInPlace(resolve(source, 'dist', entry.name), staged);
     const previousDir = staged + '-previous';

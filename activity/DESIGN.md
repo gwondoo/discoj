@@ -275,3 +275,5 @@ npm run build      # tsc + vite build → dist/
 - 시작은 `sh scripts/start-activity.sh`로 실행해요. `--no-recreate`로 기존 웹 서버와 임시 터널을 유지하며, 새로운 환경에서는 서비스를 생성해요.
 
 - Docker Desktop가 경로 변경 후 새 하위 파일을 놓치는 경우를 방지하도록 배포 하위 폴더를 준비한 뒤 교체하고, 이전 해시 자산을 보존해요. HTML은 의존 파일을 준비한 뒤 마지막으로 반영해요.
+
+- 배포 임시 폴더는 nginx worker가 읽을 수 있도록 0755 권한으로 생성해요. 썸네일은 영상 ID로 이미지 CDN을 읽으며 YouTube Data API 요청을 추가하지 않아요.
