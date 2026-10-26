@@ -53,7 +53,7 @@ export function DjBooth({scene}: {scene: Scene}) {
         <div className="ground"/>
         <Prop name="streetlamp"/><Prop name="garden-lantern"/>
         <Prop name="azalea-bush"/><Prop name="hibiscus-bush"/>
-        <Prop name="cosmos"/><Prop name="windflowers"/><Prop name="tulips"/><Prop name="pansies"/>
+        <Prop name="cosmos"/><Prop name="tulips"/>
       </div>
       <div className="glows" aria-hidden="true"><i className="glow streetlamp"/><i className="glow garden-lantern"/></div>
       <div className="rig" aria-hidden="true">
@@ -64,11 +64,18 @@ export function DjBooth({scene}: {scene: Scene}) {
         <i className="sheen left"><b/></i>
         <i className="sheen right"><b/></i>
       </div>
+      {/* Flowers at the front corners stay visible however wide the console gets. */}
+      <div className="foreground" aria-hidden="true">
+        <Prop name="windflowers"/><Prop name="pansies"/>
+      </div>
       <div className="fx" aria-hidden="true">
         <span className="note n1">♪</span><span className="note n2">♫</span>
         <span className="zzz z1">z</span><span className="zzz z2">z</span><span className="zzz z3">Z</span>
         <span className="huh">?</span>
         <i className="bubble b2"/><i className="bubble b4"/><i className="bubble b6"/>
+        {/* Butterflies by day, fireflies after dusk (shown per sky in CSS). */}
+        <i className="critter butterfly f1"/><i className="critter butterfly f2"/>
+        <i className="critter firefly ff1"/><i className="critter firefly ff2"/><i className="critter firefly ff3"/><i className="critter firefly ff4"/>
       </div>
     </div>
   );

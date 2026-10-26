@@ -9,6 +9,16 @@ const clientId = '1562673893205086288';
 
 export interface Notice { text: string; error: boolean; temporary: boolean }
 
+// A short K.K. line after a request or removal; `highlight` is the song title inside it.
+export interface Reaction { text: string; highlight: string }
+
+const addLines = ['오, %s! 좋은 곡이네. 상자에 넣어둘게요.', '%s? 센스 있는데요! 곧 틀어볼게요.', '%s 신청 받았어요. 다들 좋아하겠어요!'];
+const pick = (lines: string[]) => lines[Math.floor(Math.random() * lines.length)];
+function reaction(template: string, title: string): Reaction {
+  const highlight = `'${title}'`;
+  return {text: template.replace('%s', highlight), highlight};
+}
+
 export interface Fan { id: string; name: string; avatar: string | null }
 
 interface Participant { id: string; username: string; bot: boolean; avatar?: string | null; global_name?: string | null; nickname?: string }
@@ -37,6 +47,7 @@ export interface View {
   connection: string;
   connected: boolean;
   notice: Notice;
+  reaction: Reaction | null;
   deleteTarget: (Track & {requestId: string}) | null;
   deleteError: string;
   crowd: Fan[];
@@ -64,6 +75,8 @@ export class Discoj {
   private followingCrowd = false;
   private timer?: ReturnType<typeof setTimeout>;
   private noticeTimer?: ReturnType<typeof setTimeout>;
+  private reaction: Reaction | null = null;
+  private reactionTimer?: ReturnType<typeof setTimeout>;
   private pollGeneration = 0;
   private liveGeneration = 0;
   private liveConnection: AbortController | null = null;
@@ -102,7 +115,7 @@ export class Discoj {
       volume: this.volumeDraft ?? current?.volume ?? 100,
       connection: !authenticated ? '인증 필요' : !this.online ? '연결 확인 필요' : pending ? '곡 전환 중…' : this.busy ? '조작 중…' : current ? '연결됨' : '재생 탭 확인 필요',
       connected: Boolean(authenticated && this.online && (current || pending)),
-      notice: this.notice, deleteTarget: this.deleteTarget, deleteError: this.deleteError, crowd: this.crowd,
+      notice: this.notice, reaction: this.reaction, deleteTarget: this.deleteTarget, deleteError: this.deleteError, crowd: this.crowd,
     };
   }
 
@@ -110,6 +123,13 @@ export class Discoj {
     clearTimeout(this.noticeTimer);
     this.notice = {text, error, temporary: temporary && !error};
     if (temporary && text && !error) this.noticeTimer = setTimeout(() => this.setNotice(''), 3000);
+    this.emit();
+  }
+
+  private react(next: Reaction | null) {
+    clearTimeout(this.reactionTimer);
+    this.reaction = next;
+    if (next) this.reactionTimer = setTimeout(() => this.react(null), 6000);
     this.emit();
   }
 
@@ -276,7 +296,10 @@ export class Discoj {
     try {
       const result = await this.api<ControlResult>('add', {link, requestId: crypto.randomUUID()});
       added = result.ok;
+      const before = new Set(this.snapshot?.items.map(track => track.url));
       this.lastLiveAt = 0; await this.refresh(false, true);
+      const fresh = this.snapshot?.items.find(track => !before.has(track.url));
+      if (result.ok && fresh) this.react(reaction(pick(addLines), fresh.title));
       this.setNotice(result.ok ? '신청곡 받았어요! 레코드 상자에 넣었어요.' : result.message, !result.ok, result.ok);
     } catch (error) {
       this.setNotice((error as Error).name === 'TimeoutError' ? '추가 결과를 확인하지 못했어요. 다시 추가하기 전에 목록을 확인해주세요.' : (error as Error).message, true);
@@ -304,7 +327,7 @@ export class Discoj {
     this.deleting = true; this.deleteError = ''; this.emit();
     try {
       const result = await this.api<ControlResult>('delete', {number: target.number, requestId: target.requestId});
-      if (result.ok) { this.deleteTarget = null; this.setNotice('레코드를 상자에서 뺐어요.', false, true); }
+      if (result.ok) { this.deleteTarget = null; this.react(reaction('%s, 상자에서 빼뒀어요. 다음에 또 만나요!', target.title)); this.setNotice('레코드를 상자에서 뺐어요.', false, true); }
       else this.deleteError = result.message;
       this.lastLiveAt = 0; await this.refresh(false, true);
     } catch (error) {
@@ -356,6 +379,7 @@ export class Discoj {
 
   // Lets the dev preview render without Discord; never used inside the Activity.
   previewNotice(text: string, error = false, temporary = false) { this.setNotice(text, error, temporary); }
+  previewReaction(title: string) { this.react(reaction(addLines[0], title)); }
   previewCrowd(crowd: Fan[]) { this.crowd = crowd; this.emit(); }
 
   preview(snapshot: Snapshot, loading?: Track) {

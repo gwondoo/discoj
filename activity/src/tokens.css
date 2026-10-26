@@ -18,6 +18,7 @@
   --mint: #3fbfac; --mint-dark: #2b9b8a; --mint-soft: #d9f3eb;
   --yellow: #f7cf5c; --yellow-dark: #d6a72c; --yellow-hover: #fbd96f;
   --orange: #f0a33c;
+  --highlight: #e0702a; /* item names in K.K.'s lines, like NH dialogue */
   --red: #e2705c; --red-dark: #bf5241; --red-soft: #fde4dc;
 
   /* Type: Jua for headings, labels and buttons; Gowun Dodum for running text. */
@@ -28,6 +29,10 @@
 
   /* Shape */
   --r-sm: 12px; --r-md: 18px; --r-lg: 22px; --r-xl: 28px; --r-pill: 999px;
+
+  /* Patterns (data URIs can't read tokens: colors are --paper-dot and dark grass) */
+  --paper-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='%23e7dbb6'%3E%3Cpath d='M18 9c-7 2-10 9-7 16 7-2 10-9 7-16z'/%3E%3Ccircle cx='48' cy='44' r='2.6'/%3E%3Ccircle cx='48' cy='12' r='2.6'/%3E%3Ccircle cx='16' cy='48' r='2.6'/%3E%3C/g%3E%3Cpath d='M17 13l-5 11' stroke='%23f1e7c8' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  --grass-tufts: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='22'%3E%3Cpath d='M5 15l2.5-5 2.5 5M22 7l2.5-5 2.5 5' fill='none' stroke='%233f8a2a' stroke-opacity='.4' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 
   /* Layout (overridden per layout in styles.css) */
   --stage-h: 300px;

@@ -26,5 +26,6 @@ export function showPreview(app: Discoj) {
   const names = ['도', '민지', '하늘', 'Jun', '소라', '태오', '유나'];
   app.previewCrowd(names.slice(0, Number(params.get('crowd') ?? 5)).map((name, index) => ({id: String(index), name, avatar: null})));
   if (params.has('toast')) app.previewNotice('신청곡 받았어요! 레코드 상자에 넣었어요.', false, true);
+  if (params.has('react')) app.previewReaction('IU 아이유 - Love wins all MV');
   if (params.has('error')) app.previewNotice('재생 탭이 응답하지 않아요. Mac mini를 확인해주세요.', true);
 }

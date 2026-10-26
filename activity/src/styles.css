@@ -10,8 +10,7 @@ p, li, .now h3 { text-wrap: pretty; }
 * { box-sizing: border-box; }
 body {
   margin: 0; min-height: 100vh; background-color: var(--paper);
-  background-image: radial-gradient(var(--paper-dot) 2.4px, #0000 2.9px), radial-gradient(var(--paper-dot) 2.4px, #0000 2.9px);
-  background-size: 30px 30px; background-position: 0 0, 15px 15px;
+  background-image: var(--paper-pattern); background-size: 64px 64px;
 }
 button, input { font: inherit; color: inherit; }
 button { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
@@ -26,7 +25,7 @@ h1, h2, h3, p { margin: 0; }
 .topbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; height: var(--head-h); }
 .topbar h1 { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-size: var(--fs-2xl); font-weight: 400; letter-spacing: -.3px; white-space: nowrap; }
 .logo { --icon: 20px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--mint); color: var(--on-accent); box-shadow: 0 3px 0 var(--mint-dark); }
-.clock { display: flex; flex-direction: column; align-items: center; font-family: var(--display); line-height: 1.1; }
+.clock { display: flex; flex-direction: column; align-items: center; padding: 4px 22px 5px; border-radius: var(--r-pill); font-family: var(--display); line-height: 1.1; background: var(--card); box-shadow: 0 3px 0 var(--shadow); }
 .clock b { font-size: 22px; font-weight: 400; }
 .clock i { font-style: normal; animation: blink 2s steps(1) infinite; }
 .clock span { font-size: var(--fs-2xs); color: var(--ink-soft); }
@@ -36,11 +35,13 @@ h1, h2, h3, p { margin: 0; }
 .connection.connected::before { background: var(--mint); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mint) 20%, #0000); }
 
 .workspace { display: grid; gap: var(--gap); }
-.card { min-width: 0; padding: var(--pad); border-radius: var(--r-xl); background: var(--card); box-shadow: 0 6px 0 var(--shadow), 0 18px 30px -18px color-mix(in srgb, var(--drop) 40%, #0000); }
+.card { min-width: 0; outline: 2px dashed var(--line); outline-offset: -8px; padding: var(--pad); border-radius: var(--r-xl); background: var(--card); box-shadow: 0 6px 0 var(--shadow), 0 18px 30px -18px color-mix(in srgb, var(--drop) 40%, #0000); }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 32px; }
 .card-head h2, .pills { min-width: 0; }
 .card-head h2 { --icon: 20px; display: flex; align-items: center; gap: 8px; font-family: var(--display); font-size: var(--fs-xl); font-weight: 400; white-space: nowrap; }
 .card-head h2 > svg { color: var(--mint); }
+/* NookPhone app title: a ribbon tab with a notched tail. */
+.card-head h2 { padding: 4px 22px 4px 12px; background: var(--inset); clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 50%, 100% 100%, 0 100%); border-radius: var(--r-pill) 0 0 var(--r-pill); }
 .text-button { --icon: 15px; display: inline-flex; align-items: center; gap: 5px; height: 30px; margin: 0 -10px; padding: 0 10px; border: 0; border-radius: var(--r-pill); background: none; font-family: var(--display); font-size: var(--fs-sm); color: var(--ink-soft); }
 .text-button:hover:enabled { color: var(--ink); background: var(--inset); }
 
@@ -84,7 +85,7 @@ h1, h2, h3, p { margin: 0; }
   position: absolute; left: -35%; right: -35%; top: 50%; height: 140%; border-radius: 50% / 16%;
   background:
     radial-gradient(circle, #ffffff1f 0 1.5px, #0000 2.5px) 0 0 / 24px 16px,
-    radial-gradient(circle, #3f8a2a24 0 1.5px, #0000 2.5px) 12px 8px / 24px 16px,
+    var(--grass-tufts) 0 0 / 34px 22px,
     linear-gradient(#a6dc7a, #86c95f 22%, #79bd54);
   box-shadow: inset 0 7px 0 #bde996;
 }
@@ -96,19 +97,20 @@ h1, h2, h3, p { margin: 0; }
 .prop.hardwood-tree { right: 5%; bottom: 37%; height: 28cqh; }
 .prop.hardwood-tree.far { right: auto; left: 15%; bottom: 43%; height: 18cqh; filter: saturate(.85) brightness(1.05); }
 .prop.streetlamp { right: 7%; bottom: 24%; height: 36cqh; }
-.prop.garden-lantern { left: 4%; bottom: 5%; height: 15cqh; }
+.prop.garden-lantern { left: 2%; bottom: 23%; height: 15cqh; }
 .prop.azalea-bush { left: -3%; bottom: -5%; height: 24cqh; }
 .prop.hibiscus-bush { right: -3%; bottom: -6%; height: 27cqh; }
 .prop.cosmos { left: 10%; bottom: 20%; height: 8cqh; }
-.prop.windflowers { left: 13%; bottom: 3%; height: 9cqh; }
+.prop.windflowers { left: 9%; bottom: -1%; height: 10cqh; }
 .prop.tulips { right: 10%; bottom: 17%; height: 8cqh; }
-.prop.pansies { right: 13%; bottom: 3%; height: 9cqh; }
+.prop.pansies { right: 9%; bottom: -1%; height: 10cqh; }
 
 /* Lamp light sits outside the scene filter so it stays bright at dusk and night. */
+.foreground { position: absolute; inset: 0; z-index: 2; filter: var(--scene); transition: filter .8s; pointer-events: none; }
 .glows { position: absolute; inset: 0; z-index: -2; pointer-events: none; }
 .glow { position: absolute; width: 16cqh; aspect-ratio: 1; translate: -50% 50%; border-radius: 50%; background: radial-gradient(circle, #fff3b0 0 8%, #ffd76a99 20%, #ffd76a00 68%); mix-blend-mode: screen; opacity: 0; transition: opacity .8s; }
 .glow.streetlamp { left: calc(93% - 2.6cqh); bottom: calc(24% + 33cqh); }
-.glow.garden-lantern { left: calc(4% + 4.4cqh); bottom: calc(5% + 9cqh); width: 12cqh; }
+.glow.garden-lantern { left: calc(2% + 4.4cqh); bottom: calc(23% + 9cqh); width: 12cqh; }
 .booth[data-sky=evening] .glow { opacity: .75; }
 .booth[data-sky=night] .glow { opacity: 1; }
 
@@ -167,6 +169,9 @@ h1, h2, h3, p { margin: 0; }
   font-family: var(--display); font-size: var(--fs-base); line-height: 1.5; color: var(--ink);
 }
 .dialogue p { display: grid; overflow-wrap: anywhere; }
+/* Speech tail pointing up at K.K. on the stage. */
+.player > .dialogue::before { content: ""; position: absolute; left: 50%; top: -11px; translate: -50% 0; border: 12px solid #0000; border-top: 0; border-bottom-color: var(--bubble); filter: drop-shadow(0 -2px 0 var(--bubble-shadow)); }
+.dialogue em { font-style: normal; color: var(--highlight); }
 /* Typed text sits over the full line so the box keeps its final size while typing. */
 .dialogue p > [aria-hidden] { grid-area: 1 / 1; }
 .dialogue .ghost { visibility: hidden; }
@@ -362,10 +367,39 @@ dialog h2 { font-family: var(--display); font-size: var(--fs-xl); font-weight: 4
   .play-hint { display: none; }
   .choice { min-height: 44px; }
 }
+/* Squishy buttons: press squashes, release springs back; hover gives a little wiggle. */
+.round, .request button, .choice, .text-button { transition: scale .3s cubic-bezier(.3, 1.8, .5, 1), transform .08s, box-shadow .08s, background-color .15s; }
+.round:active:enabled, .request button:active:enabled, .choice:active:enabled { scale: 1.06 .9; transition-duration: .08s; }
+.text-button:active:enabled { scale: .94; transition-duration: .08s; }
+@media (hover: hover) {
+  .round:hover:enabled, .request button:hover:enabled { animation: wiggle .45s ease-in-out; }
+}
+@keyframes wiggle { 25% { rotate: -5deg; } 60% { rotate: 4deg; } 85% { rotate: -1deg; } }
+
+/* Island critters: butterflies in morning/day, fireflies in evening/night. */
+.fx .critter { display: none; opacity: 1; pointer-events: none; }
+.butterfly { width: 22px; height: 15px; filter: drop-shadow(0 1px 0 #0000002e); }
+.butterfly::before, .butterfly::after { content: ""; position: absolute; top: 0; width: 11px; height: 15px; border-radius: 60% 60% 40% 40%; background: var(--wing, #ffe066); border: 1.5px solid #8a6a2a; box-shadow: inset 0 -3px 0 #0000001a; transform-origin: 100% 60%; animation: flap .22s ease-in-out infinite alternate; }
+.butterfly::after { left: 11px; transform-origin: 0 60%; animation-name: flap-r; }
+.butterfly.f1 { left: 30%; top: 38%; animation: flutter 9s ease-in-out infinite; }
+.butterfly.f2 { left: 70%; top: 30%; --wing: #ff9fc6; animation: flutter 11s ease-in-out -4s infinite reverse; }
+.firefly { width: 5px; height: 5px; border-radius: 50%; background: #fff7a8; box-shadow: 0 0 6px 2px #ffe95c99; animation: glimmer 3.2s ease-in-out infinite; }
+.firefly.ff1 { left: 22%; top: 58%; } .firefly.ff2 { left: 34%; top: 46%; animation-delay: -1.1s; }
+.firefly.ff3 { left: 72%; top: 52%; animation-delay: -2s; } .firefly.ff4 { left: 84%; top: 40%; animation-delay: -.6s; }
+.booth[data-sky=morning] .fx .butterfly, .booth[data-sky=day] .fx .butterfly { display: block; }
+.booth[data-sky=evening] .fx .firefly, .booth[data-sky=night] .fx .firefly { display: block; }
+.booth[data-sky=evening] .fx .firefly { opacity: .7; }
+@keyframes flap { to { transform: scaleX(.25); } }
+@keyframes flap-r { to { transform: scaleX(.25); } }
+@keyframes flutter { 0%, 100% { translate: 0 0; } 25% { translate: 40px -14px; } 50% { translate: 70px 6px; } 75% { translate: 26px 12px; } }
+@keyframes glimmer { 0%, 100% { opacity: .15; translate: 0 0; } 50% { opacity: 1; translate: 6px -8px; } }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition: none !important; }
   .booth[data-scene=playing] .note, .booth[data-scene=paused] .zzz { animation: none; opacity: .9; }
   .booth[data-scene=playing] .bubble { animation: none; opacity: 0; }
+  .butterfly, .butterfly::before, .butterfly::after { animation: none; }
+  .firefly { animation: none; opacity: .8; }
 }
 
 /* Desktop Activity containers resize independently of the device's screen.
@@ -434,12 +468,12 @@ dialog h2 { font-family: var(--display); font-size: var(--fs-xl); font-weight: 4
   .desktop-layout .player > .now { grid-area: now; min-height: 0; margin: 0; text-align: left; align-items: flex-start; justify-content: center; gap: 8px; overflow: hidden; }
   .desktop-layout .now h3 { font-size: clamp(13px, 5.5vh, 18px); line-height: 1.35; -webkit-line-clamp: 3; }
   .desktop-layout .now .text-button, .desktop-layout .player > .transport, .desktop-layout .player > .fader { display: none; }
-  .desktop-layout .mini-meta { display: flex; max-width: 100%; overflow: hidden; align-items: center; gap: 4px; margin: 0; --icon: 13px; color: var(--ink-soft); font-size: var(--fs-xs); }
+  .desktop-layout .mini-meta { display: flex; max-width: 100%; white-space: nowrap; overflow: hidden; align-items: center; gap: 4px; margin: 0; --icon: 13px; color: var(--ink-soft); font-size: var(--fs-xs); }
   .desktop-layout .mini-meta span { min-width: 0; margin-left: 2px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   .desktop-layout .player > .dialogue { display: none; }
   .desktop-layout .player[data-attention=true] > .dialogue { display: block; position: absolute; z-index: 5; inset: 0; width: auto; min-height: 0; margin: 0; padding: 12px; border-radius: var(--r-sm); font-size: var(--fs-xs); overflow: auto; box-shadow: none; }
   .desktop-layout .dialogue .nametag, .desktop-layout .dialogue .next, .desktop-layout .dialogue .choice, .desktop-layout .dialogue-dismiss { display: none; }
-  .desktop-layout .scene-prop, .desktop-layout .bubble, .desktop-layout .note, .desktop-layout .zzz, .desktop-layout .huh { display: none; }
+  .desktop-layout .prop.cosmos, .desktop-layout .prop.tulips, .desktop-layout .foreground, .desktop-layout .booth[data-sky] .fx .critter, .desktop-layout .bubble, .desktop-layout .note, .desktop-layout .zzz, .desktop-layout .huh { display: none; }
 }
 /* Dismiss recoverable notices without leaving the mini player. Auth errors retain reconnect. */
 .dialogue-dismiss { position: absolute; z-index: 1; top: 8px; right: 10px; border: 1px solid var(--line); border-radius: var(--r-pill); padding: 5px 10px; background: var(--card); font-family: var(--display); font-size: var(--fs-xs); }

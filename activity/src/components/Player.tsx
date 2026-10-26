@@ -22,7 +22,8 @@ export function Player({view, app}: {view: View, app: Discoj}) {
   const offline = view.authenticated && !view.online;
   // Short confirmations go to the phone toast; the dialogue keeps statuses and errors.
   const spoken = notice.temporary ? '' : notice.text;
-  const line = spoken || (offline ? '서버랑 연결이 끊겼어요. 다시 연결하는 중이에요.' : view.authenticated ? sceneLines[scene] : '');
+  const reaction = !spoken && !offline ? view.reaction : null;
+  const line = spoken || (offline ? '서버랑 연결이 끊겼어요. 다시 연결하는 중이에요.' : reaction ? reaction.text : view.authenticated ? sceneLines[scene] : '');
   const title = loading ? loading.title || '선택한 곡' : current?.title || '연결된 유튜브 재생 탭이 없어요';
   const playing = current?.state === 'playing';
 
@@ -37,7 +38,7 @@ export function Player({view, app}: {view: View, app: Discoj}) {
         </div>
       </div>
       <DjBooth scene={scene}/>
-      <Dialogue speaker="K.K." text={line} error={notice.error && Boolean(spoken)}
+      <Dialogue speaker="K.K." text={line} highlight={reaction?.highlight} error={notice.error && Boolean(spoken)}
         onDismiss={notice.error && !view.needsReconnect ? app.dismissNotice : undefined}>
         {view.needsReconnect && <button className="choice" onClick={app.start}>다시 연결할게!</button>}
       </Dialogue>
