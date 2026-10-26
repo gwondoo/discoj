@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import {mkdtempSync, mkdirSync, writeFileSync, readFileSync, statSync, existsSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {syncLive} from '../activity/scripts/sync-live.mjs';
+const root = mkdtempSync(join(tmpdir(), 'discoj-deploy-'));
+try {
+  const source = join(root, 'source'), live = join(root, 'live');
+  mkdirSync(join(source, 'dist/assets'), {recursive: true});
+  writeFileSync(join(source, 'dist/index.html'), 'new page');
+  writeFileSync(join(source, 'dist/assets/new.js'), 'new');
+  writeFileSync(join(source, 'nginx.conf'), 'config 1');
+  let reloads = 0;
+  syncLive(source, live, () => reloads++);
+  assert.equal(readFileSync(join(live, 'dist/index.html'), 'utf8'), 'new page');
+  const target = join(live, 'nginx.conf'), inode = statSync(target).ino;
+  writeFileSync(join(live, 'dist/assets/old.js'), 'old client');
+  const before = reloads;
+  syncLive(source, live, () => reloads++);
+  assert.equal(reloads, before, 'unchanged config must not reload');
+  assert.ok(existsSync(join(live, 'dist/assets/old.js')), 'keep old clients assets');
+  writeFileSync(join(source, 'nginx.conf'), 'config 2');
+  syncLive(source, live, () => { assert.equal(readFileSync(target, 'utf8'), 'config 2'); reloads++; });
+  assert.equal(statSync(target).ino, inode, 'preserve file bind mount inode');
+  writeFileSync(join(source, 'nginx.conf'), 'invalid');
+  assert.throws(() => syncLive(source, live, () => { throw Error('nginx validation failed'); }));
+  assert.equal(readFileSync(target, 'utf8'), 'config 2', 'rollback rejected config');
+  assert.equal(statSync(target).ino, inode);
+  console.log('Deployment passed: first deploy, unchanged config, inode preservation, reload and rollback, old assets');
+} finally { rmSync(root, {recursive: true, force: true}); }

@@ -244,3 +244,8 @@ npm run build      # tsc + vite build → dist/
 - 기존 실행 중인 바인드 마운트를 위해 루트 `activity-test/`에 Git에서 제외한 배포 복사본을 유지해요. 빌드 후 자동으로 동기화해요.
 - 컨테이너 표시 이름은 `discoj-activity`, `discoj-activity-tunnel`이에요. Docker 내부 프로젝트 ID는 기존 연결 보존을 위해 유지해요.
 - 디자인 반영은 `activity/`에서 빌드만 수행하고, 실행 중인 터널은 재시작하지 않아요.
+
+### 무중단 배포 경로 (2026-10-26)
+- Compose도 운영 배포 경로 `activity-test/dist`, `activity-test/nginx.conf`를 사용해 소스 경로와 분리해요.
+- 빌드는 배포 폴더를 자동 생성하고 dist와 Nginx 설정을 동기화해요. 설정은 파일 inode를 유지해 쓰고 검증 후 graceful reload하며, 검증 실패 시 이전 설정을 복원해요.
+- 시작은 `sh scripts/start-activity.sh`로 실행해요. `--no-recreate`로 기존 웹 서버와 임시 터널을 유지하며, 새로운 환경에서는 서비스를 생성해요.

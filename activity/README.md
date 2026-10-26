@@ -25,7 +25,7 @@ npm ci
 npm run build
 cd ..
 docker compose up -d --build
-docker compose -f compose.activity.yaml up -d
+sh scripts/start-activity.sh
 docker compose -f compose.activity.yaml logs tunnel
 ```
 
@@ -51,6 +51,8 @@ It never forwards the extension bridge or its private bearer token.
 The tunnel hostname is temporary and may change when recreated. Use a stable
 hostname before ongoing operation. Remove its Discord mapping before stopping
 or discarding the tunnel.
+
+Only for intentional shutdown (interrupts Activity and discards the temporary address):
 
 ```sh
 docker compose -f compose.activity.yaml down
@@ -112,5 +114,5 @@ node tests/activity-connection-integration.test.mjs
 
 The container names are `discoj-activity` and `discoj-activity-tunnel`.
 The Compose project identity remains `discoj-activity-test` to preserve the existing live deployment.
-The ignored root `activity-test/` deployment mirror preserves existing bind mounts. The build syncs it automatically when present.
-Design updates need only a build; do not restart the tunnel because its temporary hostname changes.
+The ignored root `activity-test/` deployment mirror preserves existing bind mounts. The build creates and syncs it automatically. Nginx config changes are validated and gracefully reloaded; invalid changes are rolled back.
+Design updates need only a build. Use `sh scripts/start-activity.sh` to start services without recreating existing containers. Do not run plain Compose up, down, or force-recreate on the live temporary tunnel: its hostname may change.

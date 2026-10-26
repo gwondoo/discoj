@@ -6,8 +6,8 @@ services:
     image: nginx:alpine
     restart: unless-stopped
     volumes:
-      - ./activity/dist:/usr/share/nginx/html:ro
-      - ./activity/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./activity-test/dist:/usr/share/nginx/html:ro
+      - ./activity-test/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
       - "127.0.0.1:18767:80"
   tunnel:
