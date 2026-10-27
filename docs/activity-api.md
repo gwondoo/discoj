@@ -77,3 +77,9 @@ Activity sessions last up to 8 hours, capped by the Discord access token lifetim
 
 ### Progress and seek
 The selected tab reports `position` (seconds), finite positive `duration` or null, `live`, and `ad`. The bridge stamps `positionAt` with server epoch milliseconds. State and playback events expose these fields to all viewers; UI extrapolates between the existing 5-second reports. `seek` accepts a finite nonnegative `value` in seconds within duration. Live/ads/unknown duration and unseekable ranges are rejected. Commands retain the video/session fence, serialization and idempotency. Seeking changes only currentTime and preserves paused/playing state; no YouTube Data API requests.
+
+## On-demand playback recovery
+
+`POST /api/control` with `action: "play"` recovers the shared browser connection when needed. A fresh playing state is an idempotent success. The authenticated extension push channel `ws://127.0.0.1:18766/events` receives a first-message bearer secret (never a URL parameter), `recover` commands, and `controlReady` notifications. Extension acknowledgements use the matching recovery request ID. Heartbeats do not inspect or recover tabs.
+
+If the extension socket is absent, the bot calls the host-only `POST http://host.docker.internal:18769/ensure` with a separate server bearer token. The fixed macOS launcher opens the company Chrome profile without a URL; the extension reuses a suitable tab or creates one public playlist watch tab. Concurrent play controls are serialized and tab creation is single-flight. Recovery waits up to 12 seconds for the socket and 18 seconds for tab readiness, followed by the existing 12-second control acknowledgement. Activity control requests allow 45 seconds and nginx allows 50 seconds. Errors do not report successful playback.

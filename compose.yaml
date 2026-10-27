@@ -5,6 +5,7 @@ services:
     environment:
       PLAYBACK_HOST: 0.0.0.0
       ACTIVITY_HOST: 0.0.0.0
+      HOST_LAUNCH_URL: http://host.docker.internal:18769
     ports:
       - "127.0.0.1:18766:18766"
       - "127.0.0.1:18768:18768"

@@ -86,6 +86,7 @@ class ControlTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(response.status, 401)
         with self.assertRaises(PlaylistError):
             await self.playback.control('volume', 101)
+        self.playback.data['state'] = 'paused'
         task = asyncio.create_task(self.playback.control('play'))
         await asyncio.sleep(0)
         with self.assertRaises(PlaylistError):

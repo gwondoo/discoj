@@ -198,6 +198,8 @@ class ActivityTests(unittest.IsolatedAsyncioTestCase):
             for index, action in enumerate(('previous', 'next', 'play', 'pause', 'volume', 'select', 'seek')):
                 self.now += 2
                 body = {'action': action, 'requestId': f'control-{index}'}
+                if action == 'play':
+                    self.playback.data['state'] = 'paused'
                 if action == 'volume':
                     body['value'] = 71
                 if action == 'select':

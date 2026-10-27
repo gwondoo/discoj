@@ -61,7 +61,7 @@ export function Player({view, app}: {view: View, app: Discoj}) {
         <button className="round" disabled={!canControl} onClick={() => app.control('previous')} aria-label="이전곡" title="이전곡"><Icon name="previous"/></button>
         {playing
           ? <button className="round main" disabled={!canControl} onClick={() => app.control('pause')} aria-label="일시정지" title="일시정지"><Icon name="pause"/></button>
-          : <button className="round main" disabled={!canControl} onClick={() => app.control('play')} aria-label="재생" title="재생"><Icon name="play"/></button>}
+          : <button className="round main" disabled={!view.authenticated || !view.online || view.busy || Boolean(loading)} onClick={() => app.control('play')} aria-label={view.busy ? '연결 및 재생 처리 중' : '재생'} title="재생"><Icon name="play"/></button>}
         <button className="round" disabled={!canControl} onClick={() => app.control('next')} aria-label="다음곡" title="다음곡"><Icon name="next"/></button>
         <Volume view={view} app={app}/>
       </div>

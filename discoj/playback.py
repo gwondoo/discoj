@@ -17,6 +17,7 @@ class Playback:
         self.data = None
         self.control_lock = asyncio.Lock()
         self.pending = None
+        self.recovery = None
 
     def current(self):
         if self.updated is None or self.clock() - self.updated > 45:
@@ -97,6 +98,14 @@ class Playback:
             raise PlaylistError('다른 조작을 처리 중이에요. 잠시 후 다시 눌러주세요.')
         async with self.control_lock:
             current = self.current()
+            if action == 'play':
+                if current and current['state'] == 'playing':
+                    return {'ok': True, 'message': '이미 재생 중이에요.'}
+                if self.recovery:
+                    await self.recovery.ensure()
+                    current = self.current()
+                    if current and current['state'] == 'playing':
+                        return {'ok': True, 'message': '재생 탭을 연결했어요. 이미 재생 중이에요.'}
             if not current or not current.get('session'):
                 raise PlaylistError('연결된 재생 탭을 확인할 수 없어요. 확장 프로그램 연결을 확인해주세요.')
             if action == 'seek' and (current.get('live') or current.get('ad') or
@@ -114,6 +123,8 @@ class Playback:
                        'expiresAt': int((time.time() + 12) * 1000)}
             self.pending = {'command': pending, 'future': future, 'delivered': False}
             try:
+                if self.recovery:
+                    await self.recovery.notify_control()
                 result = await asyncio.wait_for(future, timeout=12)
                 if not result.get('ok'):
                     raise PlaylistError(result.get('error', '브라우저에서 조작을 적용하지 못했어요.'))
@@ -158,6 +169,8 @@ class Playback:
 
     def app(self):
         app = web.Application(client_max_size=4096)
+        if self.recovery:
+            app.router.add_get('/events', self.recovery.events)
         app.router.add_post('/playback', self.report)
         app.router.add_get('/queue', self.queue)
         app.router.add_get('/control', self.take_control)

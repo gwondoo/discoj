@@ -116,7 +116,9 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     } else if (message.type === 'disconnect' && !sender.tab) {
       const previous = await chrome.storage.session.get('tabId');
       await chrome.storage.session.remove(['tabId', 'connectionId']);
-      if (previous.tabId) await chrome.tabs.sendMessage(previous.tabId, {type: 'disconnectQueue'}).catch(() => {});
+      if (previous.tabId) {
+        await chrome.tabs.sendMessage(previous.tabId, {type: 'disconnectQueue'}).catch(() => {});
+      }
       await queued({state: 'unavailable'});
     }
     respond({ok: true});
@@ -131,3 +133,6 @@ chrome.tabs.onRemoved.addListener(async id => {
     queued({state: 'unavailable'}).catch(() => {});
   }
 });
+
+
+importScripts('on-demand.js');

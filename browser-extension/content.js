@@ -106,14 +106,18 @@
     live: Boolean(document.querySelector('.html5-video-player.ytp-live:not(.ytp-live-ended)')),
   });
   const progress = video => globalThis.DiscoJProgress.read(video, progressFlags());
-  function report() {
-    if (!ownsPage()) return;
+  function readPlayback() {
     const id = currentId();
     const video = document.querySelector('video.html5-main-video');
     const title = document.querySelector('ytd-watch-metadata h1 yt-formatted-string')?.textContent?.trim();
     const valid = !navigating && location.pathname === '/watch' && /^[\w-]{11}$/.test(id || '') && video && video.readyState >= 2 && title;
     applyRepeat();
     const data = valid ? {state: video.paused || video.ended ? 'paused' : 'playing', title: title.slice(0, 500), videoId: id, repeatMode, ...progress(video), volume: Math.round(video.muted ? 0 : video.volume * 100)} : {state: 'unavailable'};
+    return data;
+  }
+  function report() {
+    if (!ownsPage()) return;
+    const data = readPlayback();
     chrome.runtime.sendMessage({type: 'report', data}).catch(() => {});
     if (connected && Date.now() - received > 30000 && !disconnected) { disconnected = true; render(); }
   }
@@ -187,6 +191,7 @@
       executeControl(message.command).then(respond).catch(() => respond({ok: false, error: '브라우저에서 재생 조작을 적용하지 못했어요.'}));
       return true;
     }
+    if (message.type === 'probePlayback') { respond({ok: true, data: readPlayback()}); return; }
     if (message.type === 'reportNow') report();
     if (message.type === 'disconnectQueue') { saveCursor(); connected = false; const video = document.querySelector('video.html5-main-video'); if (video) video.loop = false; snapshot = null; pending = null; restore(); }
     if (message.type === 'queueSnapshot' && message.data && Array.isArray(message.data.items)) {
@@ -242,6 +247,9 @@
         event.target.closest?.('input, textarea, [contenteditable="true"]')) return;
     event.preventDefault(); event.stopImmediatePropagation(); step(event.key.toUpperCase() === 'N' ? 'next' : 'previous');
   }, true);
+  listen(document, 'visibilitychange', report);
+  listen(window, 'pageshow', report);
+  listen(window, 'online', report);
   const timer = setInterval(report, 5000);
   globalThis.discojContentCleanup = () => { clearInterval(timer); listeners.forEach(remove => remove()); chrome.runtime.onMessage.removeListener(onMessage); restore(); };
   report();

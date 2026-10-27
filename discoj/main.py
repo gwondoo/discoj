@@ -5,6 +5,7 @@ import os
 import aiohttp
 from aiohttp import web
 from .playback import Playback
+from .recovery import Recovery
 from .activity import Activity
 from dotenv import load_dotenv
 from .bot import MusicBot
@@ -29,6 +30,8 @@ async def main():
         playback = Playback(os.getenv('PLAYBACK_TOKEN', ''), playlist=playlist)
         bot = MusicBot(playlist, int(os.environ['DISCORD_GUILD_ID']), int(os.environ['DISCORD_CHANNEL_ID']),
                        {int(v.strip()) for v in os.getenv('EXCLUDED_USER_IDS', '').split(',') if v.strip()}, playback=playback)
+        playback.recovery = Recovery(playback.token, playlist, session,
+            os.getenv('HOST_LAUNCH_URL', ''), os.getenv('HOST_LAUNCH_TOKEN', ''))
         runner = web.AppRunner(playback.app(), access_log=None)
         activity_runner = None
         if playback.token:

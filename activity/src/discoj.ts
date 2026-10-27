@@ -138,7 +138,7 @@ export class Discoj {
     const response = await fetch('/api/' + path, {
       method: body ? 'POST' : 'GET', cache: 'no-store',
       headers: {...(body ? {'Content-Type': 'application/json'} : {}), ...(authenticated ? {Authorization: 'Bearer ' + this.session} : {})},
-      ...(body ? {body: JSON.stringify(body)} : {}), signal: AbortSignal.timeout(20000),
+      ...(body ? {body: JSON.stringify(body)} : {}), signal: AbortSignal.timeout(path === 'control' ? 45000 : 20000),
     });
     let data;
     try { data = await response.json(); } catch { throw new Error('서버에 연결하지 못했어요. 잠시 후 다시 시도해주세요.'); }
@@ -257,10 +257,10 @@ export class Discoj {
   }
 
   control = async (action: string, value?: number | 'all' | 'one') => {
-    if (this.busy || this.transition.pending || !this.online || !this.session || !this.snapshot?.current) return false;
+    if (this.busy || this.transition.pending || !this.online || !this.session || (action !== 'play' && !this.snapshot?.current)) return false;
     if (action === 'select') {
-      const track = this.snapshot.items.find(track => track.number === value);
-      if (track) { this.transition.begin(track, this.snapshot.current.url); this.render(this.snapshot); }
+      const track = this.snapshot?.items.find(track => track.number === value);
+      if (track && this.snapshot?.current) { this.transition.begin(track, this.snapshot.current.url); this.render(this.snapshot); }
     }
     this.busy = true; this.setNotice('');
     try {
